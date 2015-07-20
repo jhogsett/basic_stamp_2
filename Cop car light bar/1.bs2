@@ -1,0 +1,20 @@
+' {$STAMP BS2}
+' {$PBASIC 2.5}
+
+DIRS = %1111111111111111
+OUTS = %0000000000000000
+
+in VAR Nib
+ib VAR Byte
+rw VAR Word
+
+main:
+
+FOR in = 5 TO 0
+  ib = (1 << in) ^ in
+  OUTL = ib
+  OUTH = ib
+  PAUSE 100
+NEXT
+
+GOTO main

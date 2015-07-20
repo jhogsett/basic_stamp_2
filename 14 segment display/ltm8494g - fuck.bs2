@@ -1,0 +1,73 @@
+outc = %0111
+outd = %0000
+dirc = %0111
+dird = %0011
+r var word
+i var word
+j var word
+
+dpin con 12
+cpin con 13
+
+
+
+
+loop:
+
+pause 300
+
+for i = 0 to 5
+outc = i
+shiftout dpin,cpin,msbfirst,[%1\1,%11111111111111\14,%11111111111111\14,0\7]
+next
+
+pause 300
+
+outc = 0
+shiftout dpin,cpin,msbfirst,[%1\1,%01111100000000\14,%10001111000000\14,0\7]
+
+outc = 1
+shiftout dpin,cpin,msbfirst,[%1\1,%00001110001100\14,%10011100000000\14,0\7]
+
+outc = 2
+shiftout dpin,cpin,msbfirst,[%1\1,%01101100100100\14,%10010000010010\14,0\7]
+
+outc = 3
+shiftout dpin,cpin,msbfirst,[%1\1,%00000000000000\14,%10111101000000\14,0\7]
+
+outc = 4
+shiftout dpin,cpin,msbfirst,[%1\1,%01101111000000\14,%10110111000000\14,0\7]
+
+outc = 5
+shiftout dpin,cpin,msbfirst,[%1\1,%10000000010010\14,%10010000010010\14,0\7]
+
+pause 300
+
+for i = 0 to 5
+outc = i
+shiftout dpin,cpin,msbfirst,[%1\1,0\14,0\14,0\7]
+next
+
+pause 300
+
+outc = 0
+shiftout dpin,cpin,msbfirst,[%1\1,%01111100000000\14,%10001111000000\14,0\7]
+
+outc = 1
+shiftout dpin,cpin,msbfirst,[%1\1,%00001100001100\14,%10011100000000\14,0\7]
+
+outc = 2
+shiftout dpin,cpin,msbfirst,[%1\1,%01101100100100\14,%10010000010010\14,0\7]
+
+outc = 3
+shiftout dpin,cpin,msbfirst,[%1\1,%00000000000000\14,%10111101000000\14,0\7]
+
+outc = 4
+shiftout dpin,cpin,msbfirst,[%1\1,%01101111000000\14,%10110111000000\14,0\7]
+
+outc = 5
+shiftout dpin,cpin,msbfirst,[%1\1,%10000000010010\14,%10010000010010\14,0\7]
+
+goto loop
+
+z: goto z

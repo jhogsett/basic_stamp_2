@@ -1,0 +1,77 @@
+'{$STAMP BS2px, circleanim1.bpx}
+' {$PBASIC 2.5}
+
+' pin mappings
+addr   VAR   OUTC
+enable  VAR  OUT12
+rdata  VAR  OUT0
+gdata  VAR  OUT1
+rgdata  VAR  OUTA
+clock  VAR  OUT4
+clockpin CON 4
+latch  VAR  OUT5
+latchpin CON 5
+red CON 0
+green CON 1
+
+' set directions
+DIRS = %0001111100110011
+OUTS = %1111111111111111
+
+w VAR Word
+
+' parameters for DoFrame subroutine
+frame VAR Byte
+times VAR Byte
+framebase VAR Byte
+scanline VAR Byte
+framecount VAR Byte
+framecolor VAR Bit
+
+clock = 0
+latch = 0
+enable = 0
+rgdata = 0
+
+STORE 1
+main:
+framecolor = red
+'times = 1
+FOR frame = 0 TO 6
+GOSUB DoFrame
+NEXT
+framecolor = green
+'times = 4
+FOR frame = 7 TO 1
+times = frame
+GOSUB DoFrameT
+NEXT
+GOTO main
+
+
+
+DoFrame:
+  framebase = frame << 4
+  FOR scanline = framebase TO framebase + 15
+    READ scanline << 1, Word w
+    SHIFTOUT framecolor, clockpin, 1, [w \ 16]
+    enable = 1
+    PULSOUT latchpin, 1
+    addr = scanline.LOWNIB
+    enable = 0
+  NEXT
+RETURN
+
+DoFrameT:
+  framebase = frame << 4
+  FOR framecount = 1 TO times
+    FOR scanline = framebase TO framebase + 15
+      READ scanline << 1, Word w
+      SHIFTOUT framecolor, clockpin, 1, [w \ 16]
+      enable = 1
+      PULSOUT latchpin, 1
+      addr = scanline.LOWNIB
+      enable = 0
+    NEXT
+  NEXT
+RETURN

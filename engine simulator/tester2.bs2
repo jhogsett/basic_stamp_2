@@ -1,0 +1,124 @@
+' {$STAMP BS2}
+' {$PBASIC 2.5}
+
+DIRS = %1111111111111111
+OUTS = %0000000000000000
+
+c2 CON 15
+
+t CON 2
+
+i VAR Byte
+j VAR Byte
+b VAR Byte
+
+r VAR Word
+
+main:
+  FOR j = 1 TO t
+    OUTL = 0
+    PAUSE c2
+    OUTL = b ^ (r.LOWBYTE.LOWNIB << 2)
+    PAUSE c2
+'  RANDOM r
+  NEXT
+  b = (b + 1) & $3f
+'  b = (b << 1) & %00111111
+'  IF b = 0 THEN
+'    b = 1
+'  ENDIF
+  RANDOM r
+GOTO main
+
+
+
+
+
+
+mainxx:
+OUTL = 0
+PAUSE 100
+OUTL = 255
+PAUSE 100
+GOTO main
+
+
+speed VAR Byte
+times VAR Byte
+asdr VAR Word
+
+s1 CON 15
+s2 CON 5
+
+mainx:
+
+main1:
+PAUSE s1
+
+OUTL = %00100000
+PAUSE s2
+OUTL = %00110000
+PAUSE s2
+OUTL = %00111000
+PAUSE s2
+OUTL = %00111100
+PAUSE s2
+OUTL = %00111110
+PAUSE s2
+OUTL = %00111111
+
+PAUSE s1
+
+OUTL = %00111110
+PAUSE s2
+OUTL = %00111100
+PAUSE s2
+OUTL = %00111000
+PAUSE s2
+OUTL = %00110000
+PAUSE s2
+OUTL = %00100000
+PAUSE s2
+OUTL = %00000000
+
+GOTO main1
+
+RANDOM r
+OUTL = r.LOWBYTE
+PAUSE 500
+GOTO main
+
+
+FOR speed = 1 TO 1000
+
+FOR times = 1 TO 20
+
+OUTL = %00000001
+
+PAUSE speed
+
+OUTL = %00010000
+
+PAUSE speed
+
+OUTL = %00000100
+
+PAUSE speed
+
+OUTL = %00100000
+
+PAUSE speed
+
+OUTL = %00000010
+
+PAUSE speed
+
+OUTL = %00001000
+
+PAUSE speed
+
+NEXT
+
+NEXT
+
+GOTO main

@@ -1,0 +1,83 @@
+'{$STAMP BS2}
+
+
+spkr con 8
+
+r var byte
+s var word
+nrings var byte
+secs var byte
+
+
+secs = 2
+gosub us_dial
+dtmfout spkr,175,150,[1]
+pause 300
+dtmfout spkr,175,150,[6,5,0]
+pause 400
+dtmfout spkr,175,150,[3,6,5]
+pause 200
+dtmfout spkr,175,150,[3,4]
+pause 75
+dtmfout spkr,175,150,[2,8]
+pause 500
+pulsout spkr,40
+pause 50
+pulsout spkr,40
+pause 1800
+nrings = 8
+'gosub us_busy
+gosub us_ring
+'gosub us_error
+'gosub us_reorder
+end
+
+
+
+us_dial:
+s = secs * 1000
+freqout spkr,s,350,440
+return
+
+uk_dial:
+s = secs * 1000
+freqout spkr,s,350
+return
+
+
+us_ring:
+for r = 1 to nrings
+	freqout spkr,2000,440,480
+	pause 4000
+next
+return
+
+uk_ring:
+for r = 1 to nrings
+	freqout spkr,400,400,450
+	pause 200
+	freqout spkr,400,400,450
+	pause 2000
+next
+return
+
+us_busy:
+for r = 1 to nrings
+	freqout spkr,500,480,620
+	pause 500
+next
+return
+
+us_reorder:
+for r = 1 to nrings
+	freqout spkr,300,480,620
+	pause 200
+next
+return
+
+us_error:
+freqout spkr,274,914
+freqout spkr,274,1371
+'freqout spkr,380,1371
+freqout spkr,380,1777
+return

@@ -1,0 +1,84 @@
+'{$STAMP BS2px}
+' {$PBASIC 2.5}
+
+' bouncing ball
+
+' pin mappings
+addr   VAR   OUTC
+enable  VAR  OUT12
+rdata  VAR  OUT0
+gdata  VAR  OUT1
+rgdata  VAR  OUTA
+clock  VAR  OUT4
+clockpin CON 4
+latch  VAR  OUT5
+latchpin CON 5
+'color  VAR  Nib
+'ctest  VAR  Nib
+
+' set directions
+DIRS = %0001111100110011
+OUTS = %1111111111111111
+
+
+t1 CON %1110101011101010
+t2 CON %1000101010001100
+t3 CON %1110101010001000
+t4 CON %1000101010001100
+t5 CON %1000111011101010
+t6 CON %0010101110101000
+t7 CON %0001001010101000
+t8 CON %0001001010101000
+t9 CON %0001001010101000
+ta CON %0001001110111000
+tb CON %0000000000000000
+tc CON %1110111011101010
+td CON %0100100010101100
+te CON %0100111011101000
+tf CON %1100100011001100
+tg CON %1100111010101010
+
+
+i VAR Nib
+w VAR Word
+c VAR Nib
+
+clock = 0
+latch = 0
+enable = 0
+
+rgdata = 0
+
+i = 0
+c = 0
+w = 0
+
+main:
+
+'LOOKUP i, [t1, t2, t3, t4, t5, t6, t7, t8, t9, ta, tb, tc, td, te, tf, tg], w
+
+main1:
+RANDOM w
+c = w.HIGHBYTE.HIGHNIB & %0011
+IF c = 3 THEN main1
+
+RANDOM w
+w = w >> 8
+
+SHIFTOUT c, clockpin, 1, [w \ 16]
+
+enable = 1
+
+PULSOUT latchpin, 1
+
+addr = i
+
+enable = 0
+
+i = i + 1
+
+'PAUSE 100
+
+GOTO main
+
+

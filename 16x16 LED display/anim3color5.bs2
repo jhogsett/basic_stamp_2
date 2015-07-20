@@ -1,0 +1,105 @@
+'{$STAMP BS2px, circleanim1.bpx, windmillanim.bpx}
+' {$PBASIC 2.5}
+
+' pin mappings
+addr   VAR   OUTC
+enable  VAR  OUT12
+rdata  VAR  OUT0
+gdata  VAR  OUT1
+ydata VAR OUT2
+rgydata  VAR  OUTA
+clock  VAR  OUT4
+clockpin CON 4
+latch  VAR  OUT5
+latchpin CON 5
+red CON 0
+green CON 1
+yellow CON 2
+
+' set directions
+DIRS = %0001111100110111
+OUTS = %1111111111111111
+
+w VAR Word
+r VAR Word
+
+' parameters for DoFrame subroutine
+frame VAR Byte
+times VAR Byte
+framebase VAR Word
+scanline VAR Word
+framecount VAR Byte
+framecolor VAR Nib
+
+clock = 0
+latch = 0
+enable = 0
+rgydata = 0
+
+framecolor = red
+
+spin VAR Byte
+
+STORE 2
+main:
+
+'RANDOM r
+'framecolor = r.LOWBYTE.LOWNIB // 3
+'times = r.LOWBYTE.HIGHNIB >> 1
+'frame = r.HIGHBYTE.LOWNIB >> 1
+'GOSUB DoFrameT
+'GOTO main
+
+
+times = 2
+FOR frame = 0 TO 17 STEP 1
+GOSUB DoFrameT
+NEXT
+
+spin = spin + 1
+
+framecolor = (spin >> 4) // 3
+
+'PAUSE 50
+
+GOTO main
+
+framecolor = yellow
+FOR frame = 0 TO 7
+GOSUB DoFrame
+NEXT
+
+framecolor = green
+FOR frame = 0 TO 7
+GOSUB DoFrame
+NEXT
+
+GOTO main
+
+
+
+DoFrame:
+  framebase = frame << 4
+  FOR scanline = framebase TO framebase + 15
+    READ scanline << 1, Word w
+    SHIFTOUT framecolor, clockpin, 1, [w \ 16]
+    enable = 1
+    PULSOUT latchpin, 1
+    addr = scanline.LOWNIB
+    enable = 0
+  NEXT
+RETURN
+
+DoFrameT:
+  framebase = frame << 4
+  FOR framecount = 1 TO times
+    FOR scanline = framebase TO framebase + 15
+      READ scanline << 1, Word w
+      SHIFTOUT framecolor, clockpin, 1, [w \ 16]
+      enable = 1
+      PULSOUT latchpin, 1
+      addr = scanline.LOWNIB
+      enable = 0
+    NEXT
+  NEXT
+RETURN

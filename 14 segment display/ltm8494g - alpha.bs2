@@ -1,0 +1,112 @@
+outc = %0111
+outd = %0000
+dirc = %0111
+dird = %0011
+wa var word
+wb var word
+b var byte
+l var byte
+i var byte
+j var byte
+
+
+dpin con 12
+cpin con 13
+
+
+' !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ
+data word %00000000000000 'space 0
+data word %00010000010010 '!
+data word %01000100000000 '"
+data word %00000000000000 '#
+data word %10110111010010 '$
+data word %00100100001001 '%
+data word %10111010101100 '&
+data word %00000000001000 ''
+data word %00000000001100 '(
+data word %00000000100001 ')
+data word %00000000111111 '*
+data word %00000011010010 '+
+data word %00110000000000 ',
+data word %00000011000000 '-
+data word %00100000000000 '.
+data word %00000000001001 '/
+data word %11111100001001 '0
+data word %01100000000000 '1
+data word %11011011000000 '2
+data word %11110011000000 '3
+data word %01100111000000 '4
+data word %10110111000000 '5
+data word %10111111000000 '6
+data word %11100000000000 '7
+data word %11111111000000 '8
+data word %11110111000000 '9
+data word %10000011000000 ':
+data word %10110000000000 ';
+data word %00000000001100 '<
+data word %00010011000000 '=
+data word %00000000100001 '>
+data word %11000101000010 '?
+data word %11111111111111 '@
+data word %11101111000000 'A
+data word %11110001010010 'B
+data word %10011100000000 'C
+data word %11110000010010 'D
+data word %10011111000000 'E
+data word %10001111000000 'F
+data word %10111101000000 'G
+data word %01101111000000 'H
+data word %10010000010010 'I
+data word %01111000000000 'J
+data word %00001110001100 'K
+data word %00011100000000 'L
+data word %01101100101000 'M
+data word %01101100100100 'N
+data word %11111100000000 'O
+data word %11001111000000 'P
+data word %11111100000100 'Q
+data word %11001111000100 'R
+data word %10110111000000 'S
+data word %10000000010010 'T
+data word %01111100000000 'U
+data word %00001100001001 'V
+data word %01101100000101 'W
+data word %00000000101101 'X
+data word %00000000101010 'Y
+data word %10010000001001 'Z 58
+
+
+j = 0
+i = 0
+loop:
+for j = 0 to 58
+for i = 0 to 5
+
+l = j + (i * 2) max 59
+l = l * 2
+read l,b
+
+l = l + 1
+read l,wa
+wa = wa << 8
+wa = wa + b
+
+l = l + 1
+read l,b
+
+l = l + 1
+read l,wb
+wb = wb << 8
+wb = wb + b
+
+outc = i
+shiftout dpin,cpin,msbfirst,[%1\1,wb\14,wa\14,0\7] ' 00000000000000
+
+next
+pause 50
+next
+goto loop
+z: goto z
+
+
+

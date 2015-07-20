@@ -1,0 +1,111 @@
+' pins
+
+dataio 		var OUTH
+dataio_dir 	var DIRH
+
+addr 		var OUTA
+addr_dir 	var DIRA
+
+_wr 		var OUT4
+_wr_dir		var DIR4
+_wr_pin		con 4
+
+
+' write_char function parms
+char		var byte
+digit		var nib
+blink		var bit
+
+
+
+
+
+
+
+'init
+
+init:
+
+dataio = 0
+addr = 0
+_wr = 1
+dataio_dir = %11111111
+addr_dir = %0111
+_wr_dir = %1
+
+gosub disp_on
+
+'addr = %0000
+'dataio = %00010111
+'pulsout _wr_pin,1
+
+blink = 0
+
+loop:
+
+gosub disp_on
+char = "L" : digit = 3 : gosub write_char
+char = "o" : digit = 2 : gosub write_char
+char = "o" : digit = 1 : gosub write_char
+char = "k" : digit = 0 : gosub write_char
+
+pause 250
+
+gosub disp_25
+char = "H" : digit = 3 : gosub write_char
+char = "e" : digit = 2 : gosub write_char
+char = "r" : digit = 1 : gosub write_char
+char = "e" : digit = 0 : gosub write_char
+
+pause 250
+
+goto loop
+
+
+
+' set char & digit
+write_char:
+addr = (digit & %0011) | %0100
+dataio = (char & %01111111) | (blink << 7)
+gosub set_data
+return
+
+
+' turn off the display
+disp_off:
+addr = %0000
+dataio = %10000000
+gosub set_data
+return
+
+' turn on the display (plus blink attribute & 100%)
+disp_on:
+addr = %0000
+dataio = %00010111
+gosub set_data
+return
+
+' turn on the display at 50%
+disp_50:
+addr = %0000
+dataio = %00010110
+gosub set_data
+return
+
+' turn on the display at 25%
+disp_25:
+addr = %0000
+dataio = %00010101
+gosub set_data
+return
+
+
+
+
+
+
+' set data by pulsing write line
+set_data:
+pulsout _wr_pin,1
+return
+

@@ -1,0 +1,165 @@
+' build pot machine
+' hardware test routines
+
+' boolean constants
+IN		con	0
+OUT		con 	1
+
+' hardware definitions
+LED_ADDR	var	OUTC
+LED_DATA	var	OUT12
+LED_WRITE	con	13
+LED_DIRMASK	con	%0011111100000000
+
+LCD_BUS		var	OUTA
+LCD_RS		con	4
+LCD_E		con	5
+LCD_DIRMASK	con	%0000000000111111
+
+DBA_LATCH	var	IN6
+DBA_CLEAR	con	7
+DBA_DIRMASK	con	%0000000001000000
+
+SND_START	con	14
+SND_DIRMASK	con	%0100000000000000
+
+SPKR		con	15
+SPKR_DIRMASK	con	%1000000000000000
+
+DIRMASK		con	LED_DIRMASK | LCD_DIRMASK | DBA_DIRMASK | SND_DIRMASK | SPKR_DIRMASK
+
+
+' program constants
+to_ms		con	500		' muliply factor for pulsout
+
+' program variables
+ledaddr		var	nib		' arguments for write_led
+leddata		var	bit
+
+
+' hardware init
+DIRS = DIRMASK
+LOW LED_WRITE
+
+loop0:
+i var byte
+for i = 0 to 11
+	ledaddr = i
+	leddata = 0
+	gosub write_led
+	pause 50
+next
+for i = 0 to 11
+	ledaddr = i
+	leddata = 1
+	gosub write_led
+	pause 50
+next
+goto loop0
+end
+
+r var word
+loop:
+random r
+ledaddr = r.lownib
+leddata = r.highnib.bit0
+gosub write_led
+goto loop
+
+
+
+' set ledaddr to 0-11, leddata to 0-1
+write_led:
+	LED_ADDR = ledaddr
+	LED_DATA = leddata
+	pulsout LED_WRITE, 1 * to_ms
+	return
+
+
+
+' 74ls259/74ls244 test
+'
+' boolean constants
+'
+' hardware definitions
+'symbol addr_mask = %00000111		' address mask for pins
+'symbol d = 3				' data pin active low
+'symbol d_pin = pin3
+'symbol enable = 4			' enable line active low
+'
+' program variables
+'symbol outdata = bit0			' w0,b0,b1,bit1-15
+'symbol address = b1
+'symbol prepins = b6			' w3,b7
+'symbol i = b2				' w1,b3
+'symbol a = b4				' b5,w2
+'symbol b = b5				' b4,w2
+'symbol r = w4				' b8,b9
+'symbol ad = bit1
+'symbol bd = bit2
+'symbol ar = bit3
+'symbol br = bit4
+'symbol t = b3				' b2,w1
+'
+' hardware initialization
+'let pins = %00010000
+'let dirs = %00011111			' 5 outputs, 3 dont-cares
+'
+' program initialization
+'for i = 0 to 7
+'	address = i
+'	outdata = 1
+'	gosub write_data
+'next
+'
+'main:
+'
+'	random r
+'	let a = r & %111
+'
+'	random r
+'	let b = r & %111
+'
+'	random r
+'	let ad = r & %1
+'	let bd = 1 - ad
+'
+'	random r
+'	let ar = r & %1
+'
+'	random r
+'	let br = r & %1
+'
+'	random r
+'	let t = r / 16
+'
+'	for i = 0 to t
+'
+'		address = a
+'		outdata = ad
+'		gosub write_data
+'
+'		address = b
+'		outdata = bd
+'		gosub write_data
+'
+'		a = -2 * ar + 1 + a
+'		a = a & %111
+'
+'		b = -2 * br + 1 + b
+'		b = b & %111
+'
+'		pause 30
+'
+'	next
+'goto main
+'
+'
+'write_data:
+'	
+'	' enable must be high
+'	let prepins = %00010000 | address
+'	let pins = prepins
+'	let d_pin = outdata
+'	pulsout enable,1
+'	return	

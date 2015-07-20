@@ -1,0 +1,108 @@
+' {$STAMP BS2px, eyeball1.bpx, eyeball2.bpx, eyeball3.bpx, eyeball4.bpx}
+' {$PBASIC 2.5}
+
+' demonstrates further optimized 2 color video
+
+' 9 cells across
+
+' address = (y * 9 * 32) + (x * 9)
+' address = (y * 288) + (x * 9)
+'   for y >=5 add 1 to store
+'   for alt color add 2 to store
+
+' set directions
+DIRS = %0001111100110011
+OUTS = %1111111111111111
+
+addr   VAR   OUTC
+enable  VAR  OUT12
+rgdata  VAR  OUTA
+clock  VAR  OUT4
+clockpin CON 4
+latch  VAR  OUT5
+latchpin CON 5
+
+clock = 0
+latch = 0
+enable = 0
+rgdata = 0
+
+red CON 0
+green CON 1
+yellow CON 2
+
+r VAR Word
+w VAR Word
+s VAR Nib
+
+eyex VAR Nib
+eyey VAR Nib
+eyey2 VAR Nib
+
+'frame VAR Byte
+times VAR Byte
+framebase VAR Word
+framecount VAR Byte
+scanline VAR Word
+framecolor VAR Nib
+framebase2 VAR Word
+f1 VAR Word
+f2 VAR Word
+x VAR Nib
+y VAR Nib
+newx VAR Nib
+newy VAR Nib
+
+times = 1
+framecolor = red
+
+x = 4
+y = 4
+
+main:
+RANDOM r
+
+FOR y = 0 TO 8
+  FOR x = 0 TO 8
+    eyex = x
+    eyey = y
+    GOSUB DoFrameT
+  NEXT
+NEXT
+
+GOTO main
+
+DoFrameT:
+  IF eyey <= 4 THEN
+    s = 1
+    eyey2 = eyey
+  ELSE
+    s = 2
+    eyey2 = eyey-5
+  ENDIF
+
+  'framebase = (eyey2 * 288) + (eyex * 32)
+  LOOKUP eyey2, [0, 288, 576, 864, 1152, 1440, 1728, 2016, 2304], f1
+  LOOKUP eyex, [0, 32, 64, 96, 128, 160, 192, 224, 256], f2
+  framebase = f1 + f2
+  framebase2 = framebase + 30
+
+  FOR framecount = 1 TO times
+    FOR scanline = framebase TO framebase2 STEP 2
+      STORE s
+      READ scanline, Word w
+      SHIFTOUT red, clockpin, 1, [w \ 16]
+      enable = 1
+      PULSOUT latchpin, 1
+      addr = (scanline >> 1) '& $0f
+      enable = 0
+
+      STORE s+2
+      READ scanline, Word w
+      SHIFTOUT green, clockpin, 1, [w \ 16]
+      PULSOUT latchpin, 1
+    NEXT
+  NEXT
+RETURN
+
+

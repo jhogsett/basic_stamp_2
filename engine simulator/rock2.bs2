@@ -1,0 +1,142 @@
+' {$STAMP BS2}
+' {$PBASIC 2.5}
+
+DIRS = %1111111111111111
+
+OUTS = %0000000000000000
+
+
+
+speed VAR Byte
+speed2 VAR Byte
+times VAR Byte
+r VAR Word
+i VAR Byte
+j VAR Byte
+
+speed = 200
+speed2 = 67
+
+'STOP
+
+main:
+
+FOR j = 1 TO 1
+FOR i = 1 TO 4
+OUTL = %100000
+PAUSE speed
+OUTL = 0
+PAUSE speed
+OUTL = %111000 | j
+PAUSE speed
+OUTL = 0
+PAUSE speed
+NEXT
+NEXT
+
+FOR i = 1 TO 3
+OUTL = %100000
+PAUSE speed
+OUTL = 0
+PAUSE speed
+OUTL = %111000
+PAUSE speed
+OUTL = 0
+PAUSE speed
+NEXT
+
+OUTL = %111111
+PAUSE speed2
+OUTL = %111110
+PAUSE speed2
+OUTL = %111100
+PAUSE speed2
+OUTL = %111000
+PAUSE speed2
+OUTL = %110000
+PAUSE speed2
+OUTL = %100000
+PAUSE speed2
+OUTL = %000000
+PAUSE speed
+PAUSE speed
+
+GOTO main
+
+
+
+FOR i = 1 TO 3
+OUTL = %00100000
+PAUSE speed
+OUTL = %00110001
+PAUSE speed
+OUTL = %00111000
+PAUSE speed
+OUTL = %00111101
+PAUSE speed
+OUTL = %00111110
+PAUSE speed
+OUTL = %00111111
+PAUSE speed
+NEXT
+
+FOR i = 1 TO 3
+OUTL = %00111110
+PAUSE speed2
+OUTL = %00111100
+PAUSE speed2
+OUTL = %00111000
+PAUSE speed2
+OUTL = %00110000
+PAUSE speed2
+OUTL = %00100000
+PAUSE speed2
+OUTL = %00000000
+PAUSE speed2
+NEXT
+
+GOTO main
+
+
+STOP
+
+'FOR i = 0 TO 63
+'j = j + 10 // 64
+'OUTL = i + j
+'PAUSE speed + r.BIT15 + r.BIT14 + r.BIT13
+'NEXT
+'GOTO main
+
+RANDOM r
+'OUTL = r.LOWBYTE
+'PAUSE 500
+'GOTO main
+
+
+'FOR speed = 1 TO 1000
+
+'FOR times = 1 TO 20
+
+OUTL = %00001001
+PAUSE speed + (r.BIT0 << 2)
+
+OUTL = %00010001
+PAUSE speed + (r.BIT1 << 2)
+
+OUTL = %00010100
+PAUSE speed + (r.BIT2 << 2)
+
+OUTL = %00100100
+PAUSE speed + (r.BIT3 << 2)
+
+OUTL = %00100010
+PAUSE speed + (r.BIT4 << 2)
+
+OUTL = %00001010
+PAUSE speed + (r.BIT5 << 2)
+
+'NEXT
+
+'NEXT
+
+GOTO main

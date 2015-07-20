@@ -1,0 +1,232 @@
+startbtn var in0
+indicator con 1
+hooksw con 2
+audioout con 3
+spkr con 4
+freq1 con 1976 'B7
+freq2 con 2489 'D#8
+freq3 con 3951 'B8
+shortbeep con 50
+longbeep con 250
+
+indstate var bit
+indcount var word
+indrate con 200
+
+ontime con 150
+offtime con 25
+
+'power on indicator
+high indicator
+freqout spkr,longbeep,freq1
+low indicator
+
+low indicator
+low hooksw
+
+loopoff:
+if startbtn = 0 then loopoff
+
+' start indicator
+freqout spkr,shortbeep,freq3
+
+high indicator
+pause 500
+
+high hooksw
+pause 1000
+
+if startbtn = 1 then dooff
+
+low indicator
+dtmfout audioout,ontime,offtime,[7]
+high indicator
+pause offtime
+
+low indicator
+dtmfout audioout,ontime,offtime,[2]
+high indicator
+pause offtime
+
+low indicator
+dtmfout audioout,ontime,offtime,[11]
+high indicator
+pause offtime
+
+'dtmfout audioout,ontime,offtime,[7,2,11]
+
+pause 500
+
+low indicator
+dtmfout audioout,ontime,offtime,[6]
+high indicator
+pause offtime
+
+low indicator
+dtmfout audioout,ontime,offtime,[1]
+high indicator
+pause offtime
+
+low indicator
+dtmfout audioout,ontime,offtime,[9]
+high indicator
+pause offtime
+
+low indicator
+dtmfout audioout,ontime,offtime,[9]
+high indicator
+pause offtime
+
+low indicator
+dtmfout audioout,ontime,offtime,[4]
+high indicator
+pause offtime
+
+low indicator
+dtmfout audioout,ontime,offtime,[0]
+high indicator
+pause offtime
+
+low indicator
+dtmfout audioout,ontime,offtime,[1]
+high indicator
+pause offtime
+
+'dtmfout audioout,ontime,offtime,[6,1,9,9,4,0,1]
+
+pause 12000
+
+low hooksw
+pause 4000
+
+high hooksw
+pause 1000
+
+low indicator
+dtmfout audioout,ontime,offtime,[7]
+high indicator
+pause offtime
+
+low indicator
+dtmfout audioout,ontime,offtime,[2]
+high indicator
+pause offtime
+
+low indicator
+dtmfout audioout,ontime,offtime,[11]
+high indicator
+pause offtime
+
+'dtmfout audioout,ontime,offtime,[7,2,11]
+
+pause 500
+
+low indicator
+dtmfout audioout,ontime,offtime,[6]
+high indicator
+pause offtime
+
+low indicator
+dtmfout audioout,ontime,offtime,[1]
+high indicator
+pause offtime
+
+low indicator
+dtmfout audioout,ontime,offtime,[9]
+high indicator
+pause offtime
+
+low indicator
+dtmfout audioout,ontime,offtime,[9]
+high indicator
+pause offtime
+
+low indicator
+dtmfout audioout,ontime,offtime,[4]
+high indicator
+pause offtime
+
+low indicator
+dtmfout audioout,ontime,offtime,[0]
+high indicator
+pause offtime
+
+low indicator
+dtmfout audioout,ontime,offtime,[1]
+high indicator
+pause offtime
+
+pause 12000
+
+low hooksw
+
+pause 500
+
+' now forwarding indicator
+freqout spkr,longbeep,freq1
+freqout spkr,longbeep,freq2
+
+indstate = 1
+indcount = 0
+
+loopon:
+indcount = indcount + 1
+if indcount = indrate then toggleind
+
+if startbtn = 0 then loopon
+goto dooff
+
+toggleind:
+indcount = 0
+indstate = indstate + 1
+
+if indstate = 0 then toggle0
+high indicator
+goto loopon
+
+toggle0:
+low indicator
+goto loopon
+
+dooff:
+
+' start indicator
+freqout spkr,shortbeep,freq3
+
+high indicator
+pause 500
+
+high hooksw
+pause 1000
+
+low indicator
+dtmfout audioout,ontime,offtime,[7]
+high indicator
+pause offtime
+
+low indicator
+dtmfout audioout,ontime,offtime,[3]
+high indicator
+pause offtime
+
+low indicator
+dtmfout audioout,ontime,offtime,[11]
+high indicator
+pause offtime
+
+
+'dtmfout audioout,ontime,offtime,[7,3,11]
+
+pause 1000
+
+low hooksw
+
+pause 1000
+
+' no longer forwarding indicator
+freqout spkr,longbeep,freq2
+freqout spkr,longbeep,freq1
+
+low indicator
+
+goto loopoff

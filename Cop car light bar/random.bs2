@@ -1,0 +1,13 @@
+' {$STAMP BS2}
+' {$PBASIC 2.5}
+
+OUTS = $0000
+DIRS = $ffff
+
+r VAR Word
+
+main:
+RANDOM r
+OUTS = r
+PAUSE 100
+GOTO main

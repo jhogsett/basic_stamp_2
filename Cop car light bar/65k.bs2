@@ -1,0 +1,14 @@
+' {$STAMP BS2}
+' {$PBASIC 2.5}
+
+OUTS = $0000
+DIRS = $ffff
+
+r VAR Word
+
+r = 0
+
+main:
+OUTS = r
+r = r + 1
+GOTO main

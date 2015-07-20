@@ -1,0 +1,96 @@
+' Vector 2X Compass Interface
+
+' boolean constants
+IN 		con 0
+OUT 		con 1
+LOWPIN		con 0
+HIGHPIN		con 1
+
+' hardware definitions
+spkr 		var out0
+spkr_pin	con 0
+spkr_dir	var dir0
+
+dclk		var out1
+dclk_pin	con 1
+dclk_dir	var dir1
+
+din		var in2
+din_pin		con 2
+din_dir		var dir2
+
+start		var out3
+start_pin	con 3
+start_dir	var dir3
+
+ready		var in4
+ready_pin	con 4
+ready_dir	var dir4
+
+select		var out5
+select_pin	con 5
+select_dir	var dir5
+
+reset		var out6
+reset_pin	con 6
+reset_dir	var dir6
+
+
+' program constants
+pulse_to_ms	con 500
+
+' program variables
+rnum 		var word
+readdata	var word
+
+
+
+' hardware initialization
+spkr_dir = OUT
+dclk_dir = OUT
+din_dir = IN
+start_dir = OUT
+ready_dir = IN
+select_dir = OUT
+reset_dir = OUT
+HIGH dclk_pin
+HIGH start_pin
+HIGH select_pin
+HIGH reset_pin
+
+
+' main program initialization
+
+pause 200
+dtmfout spkr_pin,[10]
+
+' reset the compass
+pulsout reset_pin,pulse_to_ms*100
+pause 100
+
+
+loop:
+
+' start a conversion
+pulsout start_pin, pulse_to_ms*10
+
+' this doesn't work
+' pulsin ready_pin,HIGHPIN,waitpulse
+
+' wait for conversion to complete
+wait1: if ready = HIGHPIN then wait1
+wait2: if ready = LOWPIN then wait2
+
+' retreive data
+pause 10
+LOW select_pin
+pause 10
+shiftin din_pin,dclk_pin,MSBPRE,[readdata\17]
+HIGH select_pin
+
+debug dec readdata,cr
+
+
+goto loop
+
+

@@ -1,0 +1,221 @@
+'{$STAMP BS2}
+
+phnum data 1,6,5,0,3,6,5,3,4,2,8
+
+spkr con 8
+
+i var byte
+r var byte
+s var word
+n var byte
+d1 var nib
+d2 var nib
+d3 var nib
+rnd var word
+x var word
+rn var byte
+
+loop:
+'goto loop:
+
+
+
+
+'gosub nickel
+'pause 500
+'gosub dime
+'pause 500
+'gosub quarter
+'end
+
+
+n = 2
+gosub us_dial
+goto skip0
+
+n = 1 
+gosub rotary
+n = 6
+gosub rotary
+n = 5
+gosub rotary
+n = 10
+gosub rotary
+n = 3
+gosub rotary
+n = 6
+gosub rotary
+n = 5
+gosub rotary
+n = 3
+gosub rotary
+n = 4
+gosub rotary
+n = 2
+gosub rotary
+n = 8
+gosub rotary
+
+skip0:
+gosub gen_number
+gosub dtmf_dial
+pause 500
+gosub kerchunk
+pause 1800
+'gosub call_card
+'pause 2000
+n = 4
+'gosub us_busy
+gosub us_ring
+'gosub us_error
+'gosub us_reorder
+pause 500
+gosub kerchunk
+pause 1800
+goto loop
+
+
+
+us_dial:
+s = n * 1000
+freqout spkr,s,350,440
+return
+
+uk_dial:
+s = n * 1000
+freqout spkr,s,350
+return
+
+
+us_ring:
+for r = 1 to n
+	freqout spkr,2000,440,480
+	pause 4000
+next
+return
+
+uk_ring:
+for r = 1 to n
+	freqout spkr,400,400,450
+	pause 200
+	freqout spkr,400,400,450
+	pause 2000
+next
+return
+
+us_busy:
+for r = 1 to n
+	freqout spkr,500,480,620
+	pause 500
+next
+return
+
+us_reorder:
+for r = 1 to n
+	freqout spkr,300,480,620
+	pause 200
+next
+return
+
+us_error:
+freqout spkr,274,914
+freqout spkr,274,1371
+'freqout spkr,380,1371
+freqout spkr,380,1777
+return
+
+call_card:
+freqout spkr,60,941,1477
+freqout spkr,940,350,440 ' needs to be able to decay
+return
+
+kerchunk:
+'pulsout spkr,40
+'pause 60
+'pulsout spkr,40
+'pause 50
+pulsout spkr,30000
+pause 50
+return
+
+'rotary 10 pulses per second, break/make 60/40, 300ms between digits
+rotary:
+for r = 1 to n
+	pulsout spkr,30000
+	pause 40
+next
+pause 560
+return
+
+nickel:
+freqout spkr,66,1700,2200
+return
+
+dime:
+freqout spkr,66,1700,2200
+pause 66
+freqout spkr,66,1700,2200
+return
+
+quarter:
+for r= 1 to 5
+	freqout spkr,33,1700,2200
+	pause 33
+next 
+return
+
+dtmf_dial:
+read phnum,d1
+dtmfout spkr,250,150,[d1]
+pause 300
+read phnum+1,d1
+read phnum+2,d2
+read phnum+3,d3
+dtmfout spkr,175,150,[d1,d2,d3]
+pause 400
+read phnum+4,d1
+read phnum+5,d2
+read phnum+6,d3
+dtmfout spkr,170,150,[d1,d2,d3]
+pause 160
+read phnum+7,d1
+read phnum+8,d2
+dtmfout spkr,155,150,[d1,d2]
+pause 75
+read phnum+9,d1
+read phnum+10,d2
+dtmfout spkr,155,150,[d1,d2]
+
+gen_number:
+' position 1, first digit of area code
+rn = 8
+gosub get_rnd
+write phnum+1,x+1
+' positions 2 & 3, second and third digits of area code
+rn = 10
+for i = 1 to 2
+	gosub get_rnd
+	write phnum+i+1,x
+next
+' position 4, first digit of exchange
+rn = 8
+gosub get_rnd
+write phnum+4,x+1
+' positions 5 & 6, second and third digits of exchange
+rn = 10
+for i = 1 to 2
+	gosub get_rnd
+	write phnum+i+4,x
+next
+' positions 7-11, last four digits
+for i = 1 to 4
+	gosub get_rnd
+	write phnum+i+6,x
+next
+return
+
+get_rnd:
+random rnd
+x = ((rnd.lowbyte * rn) / 256)
+return
+

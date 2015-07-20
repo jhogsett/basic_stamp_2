@@ -1,0 +1,22 @@
+dirc = %1111
+dird = %0011
+outc = %0000
+r var word
+i var word
+j var word
+
+loop:
+
+for i = 0 to 5
+outc = i
+
+for j = 1 to 72
+
+random r
+out12 = r.bit1
+out13 = r.bit0
+'outc = r.nib2
+
+next
+next
+goto loop 

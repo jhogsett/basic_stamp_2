@@ -1,0 +1,95 @@
+' Siemens PD1165 displays
+
+' this rev uses simpler I/F with 74374 
+
+' ==========================
+' pins
+' ==========================
+
+' 8-bit Address & Data Bus
+inbus		var	INL
+outbus		var	OUTL
+busdir		var	DIRL
+
+' Address write line (active low)
+_wr_addr	var	OUT8
+_wr_addr_dir	var	DIR8
+_wr_addr_pin	con	8
+
+' Data write line (active low)
+_wr_data	var	OUT9
+_wr_data_dir	var	DIR9
+_wr_data_pin	con	9
+
+
+
+' ==========================
+' general workspace
+' ==========================
+i		var	byte
+w		var	word
+
+
+
+' ==========================
+' init
+' ==========================
+
+' bus defaults to output
+busdir = %11111111
+
+' write lines are outputs
+_wr_addr_dir = 1
+_wr_data_dir = 1
+
+
+' write lines must start HIGH
+_wr_addr = 1
+_wr_data = 1
+
+
+
+
+' ==========================
+' Initialize the PD1165
+' ==========================
+
+' initialize the master display
+outbus = %00001000
+pulsout _wr_addr_pin,1
+
+' set data as appropriate
+outbus = %00000111
+pulsout _wr_data_pin,1
+
+' initialize 8 slave displays
+for i = 1 to 8
+	outbus = %00001000 | (i << 4)
+	pulsout _wr_addr_pin,1
+
+	outbus = %00000111
+	pulsout _wr_data_pin,1
+next
+
+
+
+w = 0
+loop:
+	random w
+
+	outbus = w.highbyte & %11110111
+	pulsout _wr_addr_pin,1
+
+	outbus = w.lowbyte 
+	pulsout _wr_data_pin,1
+
+'	pause w.highbyte & %01111000 >> 3
+
+	w = w + 1
+
+	goto loop
+	
+
+
+
+

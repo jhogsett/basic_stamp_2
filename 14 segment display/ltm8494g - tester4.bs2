@@ -1,0 +1,40 @@
+dirc = %0111
+dird = %0011
+outc = %0111
+outd = %0000
+r var word
+i var word
+j var word
+
+dpin con 12
+cpin con 13
+
+
+
+'a:
+'shiftout dpin,cpin,lsbfirst,[1\5]
+'goto a:
+
+
+
+
+
+
+
+l:
+
+for i = 0 to 5
+outc = i
+shiftout dpin,cpin,lsbfirst,[%1\1,%01010101010101\14,%10101010101010\14]
+next
+
+
+for i = 0 to 5
+outc = i
+shiftout dpin,cpin,lsbfirst,[%1\1,%10101010101010\14,%01010101010101\14]
+next
+
+goto l
+
+z:
+goto z

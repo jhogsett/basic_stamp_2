@@ -1,0 +1,232 @@
+' Character Glyphs
+' !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ
+data word %00000000000000 'space 0
+data word %00010000010010 '!
+data word %01000100000000 '"
+data word %00000000000000 '#
+data word %10110111010010 '$
+data word %00100100001001 '%
+data word %10111010101100 '&
+data word %00000000001000 ''
+data word %00000000001100 '(
+data word %00000000100001 ')
+data word %00000000111111 '*
+data word %00000011010010 '+
+data word %00110000000000 ',
+data word %00000011000000 '-
+data word %00100000000000 '.
+data word %00000000001001 '/
+data word %11111100001001 '0
+data word %01100000000000 '1
+data word %11011011000000 '2
+data word %11110011000000 '3
+data word %01100111000000 '4
+data word %10110111000000 '5
+data word %10111111000000 '6
+data word %11100000000000 '7
+data word %11111111000000 '8
+data word %11110111000000 '9
+data word %10000011000000 ':
+data word %10110000000000 ';
+data word %00000000001100 '<
+data word %00010011000000 '=
+data word %00000000100001 '>
+data word %11000101000010 '?
+data word %11111111111111 '@
+data word %11101111000000 'A
+data word %11110001010010 'B
+data word %10011100000000 'C
+data word %11110000010010 'D
+data word %10011111000000 'E
+data word %10001111000000 'F
+data word %10111101000000 'G
+data word %01101111000000 'H
+data word %10010000010010 'I
+data word %01111000000000 'J
+data word %00001110001100 'K
+data word %00011100000000 'L
+data word %01101100101000 'M
+data word %01101100100100 'N
+data word %11111100000000 'O
+data word %11001111000000 'P
+data word %11111100000100 'Q
+data word %11001111000100 'R
+data word %10110111000000 'S
+data word %10000000010010 'T
+data word %01111100000000 'U
+data word %00001100001001 'V
+data word %01101100000101 'W
+data word %00000000101101 'X
+data word %00000000101010 'Y
+data word %10010000001001 'Z 58
+
+word01 data "RED",0
+word02 data "GREEN",0
+word03 data "BLUE",0
+word04 data "CYAN",0
+word05 data "YELLOW",0
+word06 data "MAGENTA",0
+word07 data "BLACK",0
+word08 data "WHITE",0
+word09 data "ORANGE",0
+word10 data "TURQUOISE",0
+word11 data "MAROON",0
+word12 data "MAUVE",0
+word13 data "GRAY",0
+word14 data "LAVENDER",0
+word15 data "PURPLE",0
+word16 data "BROWN",0
+word17 data "TAN",0
+word18 data "PINK",0
+word19 data "TEAL",0
+word20 data "SLATE",0
+word21 data "GOLD",0
+word22 data "SILVER",0
+word23 data "BRONZE",0
+word24 data "CLEAR",0
+word25 data "BEIGE",0
+word26 data "VIOLET",0
+
+words data word word01,word word02,word word03,word word04
+	data word word05,word word06,word word07,word word08
+      data word word09,word word10,word word11,word word12
+	data word word13,word word14,word word15,word word16
+      data word word17,word word18,word word19,word word20
+	data word word21,word word22,word word23,word word24
+	data word word25,word word26
+
+
+' main init (critical)
+outc = %0111
+outd = %0000
+dirc = %0111
+dird = %0011
+
+dpin con 12
+cpin con 13
+
+gosub clear_display
+
+
+
+w var word
+n var byte
+ln var byte
+b var byte
+
+loop:
+random w
+n = (w.lowbyte * 26) / 256
+if n = ln then loop
+ln = n
+
+read words + (n * 2) + 1, pstr
+pstr = pstr << 8
+read words + (n * 2), b
+pstr = pstr + b
+' cpos = 0
+gosub clear_display
+gosub center_string
+pause 100
+goto loop
+
+
+
+
+
+
+
+
+
+' print string to display
+' set pstr to point to string
+' set cpos to starting postion 0-11
+pstr var word
+cpos var nib
+ps_d var nib
+ps_b var byte
+ps_w var word
+ps_wa var word
+ps_c var byte
+ps_f var bit
+
+print_string:
+
+ps_init:
+ps_d = cpos
+ps_wa = 0
+ps_f = 0
+
+ps_next_char:
+if ps_f = 1 then ps_done
+
+' get string character and pointer to glyph
+read pstr, ps_c
+pstr = pstr + 1
+if ps_c = 0 then ps_ending
+ps_c = (ps_c - 32) * 2
+goto ps_get_glyph
+
+ps_ending:
+if ps_d // 2 = 0 then ps_done
+ps_f = 1
+ps_w = 0
+goto ps_do_digits
+
+ps_get_glyph:
+read ps_c+1,ps_w
+ps_w = ps_w << 8
+read ps_c, ps_b
+ps_w = ps_w + ps_b
+
+if ps_d // 2 = 0 then ps_left_dig
+
+ps_right_dig:
+'ps_wb = ps_w
+goto ps_cont
+
+ps_left_dig:
+ps_wa = ps_w
+
+ps_cont:
+ps_d = ps_d + 1
+
+if ps_d // 2 = 0 then ps_do_digits
+goto ps_next_char
+
+ps_do_digits:
+' select dual-digit display
+outc = (ps_d - 1) / 2
+
+' output digits
+shiftout dpin,cpin,msbfirst,[%1\1,ps_w\14,ps_wa\14,0\7] ' start bit + 14 bits right digit + 14 bits left digit + 7 stop bits
+
+'if ps_f = 1 then ps_done
+goto ps_next_char
+
+ps_done:
+return
+
+
+center_string:
+cs_i var nib
+cs_b var byte
+' get length of string
+for cs_i = 0 to 15
+read pstr + cs_i, cs_b
+if cs_b = 0 then cs_cont
+next
+cs_cont:
+cpos = (12 - cs_i) / 2
+gosub print_string
+return
+
+
+clear_display:
+cd_i var nib
+for cd_i = 0 to 5
+outc = cd_i
+shiftout dpin,cpin,msbfirst,[%1\1,0\14,0\14,0\7] ' 00000000000000
+next
+return
+

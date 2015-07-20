@@ -1,0 +1,274 @@
+'{$STAMP BS2px}
+' {$PBASIC 2.5}
+
+' demonstrates proper latch/enable timing
+
+' pin mappings
+addr   VAR   OUTC
+enable  VAR  OUT12
+enablepin CON 12
+rdata  VAR  OUT0
+gdata  VAR  OUT1
+rgdata  VAR  OUTA
+clock  VAR  OUT4
+clockpin CON 4
+latch  VAR  OUT5
+latchpin CON 5
+
+' set directions
+DIRS = %0001111100110011
+OUTS = %1111111111111111
+
+x1 CON  %1000000000000000
+x2 CON  %0100000000000000
+x3 CON  %0010000000000000
+x4 CON  %0001000000000000
+x5 CON  %0000100000000000
+x6 CON  %0000010000000000
+x7 CON  %0000001000000000
+x8 CON  %0000000100000000
+x9 CON  %0000000010000000
+x10 CON %0000000001000000
+x11 CON %0000000000100000
+x12 CON %0000000000010000
+x13 CON %0000000000001000
+x14 CON %0000000000000100
+x15 CON %0000000000000010
+x16 CON %0000000000000001
+
+addrshift CON 12
+
+' general variables
+r VAR Word
+rn VAR Nib
+
+' state variables
+rx   VAR  Word
+ry  VAR   Word
+gx   VAR  Word
+gy  VAR   Word
+yx   VAR  Word
+yy  VAR   Word
+
+
+
+'i  VAR  Word
+'dx  VAR  Word
+'dy  VAR  Word
+'lx VAR Byte
+'ly VAR Byte
+'j VAR Byte
+'xo VAR Nib
+'yo VAR Nib
+'ctest  VAR  Nib
+'clen VAR Byte
+'rlen VAR Word
+
+' parameters and working variables for Light_XYC subroutine
+xa VAR Nib
+ya VAR Nib
+color  VAR  Nib
+xx VAR Word
+
+
+rgdata = 0
+
+clock = 0
+latch = 0
+enable = 0
+
+color = 2
+
+'x = 0
+'y = 2
+
+'RANDOM rx
+'RANDOM ry
+'RANDOM gx
+'RANDOM gy
+'RANDOM yx
+'RANDOM yy
+
+rx = 32767
+ry = 32767
+gx = 32767
+gy = 32767
+yx = 32767
+yy = 32767
+
+main:
+
+
+r1:
+RANDOM r
+IF r.LOWBYTE.LOWNIB = 0 THEN r2
+rx = rx + r.LOWBYTE.LOWNIB - 8
+
+r2:
+IF r.LOWBYTE.HIGHNIB = 0 THEN r3
+ry = ry + r.LOWBYTE.HIGHNIB - 8
+
+r3:
+RANDOM r
+IF r.LOWBYTE.LOWNIB = 0 THEN r4
+gx = gx + r.LOWBYTE.LOWNIB - 8
+
+r4:
+IF r.LOWBYTE.HIGHNIB = 0 THEN r5
+gy = gy + r.LOWBYTE.HIGHNIB - 8
+
+r5:
+RANDOM r
+IF r.LOWBYTE.LOWNIB = 0 THEN r6
+yx = yx + r.LOWBYTE.LOWNIB - 8
+
+r6:
+IF r.LOWBYTE.HIGHNIB = 0 THEN r7
+yy = yy + r. LOWBYTE.HIGHNIB - 8
+
+r7:
+
+color = 0
+xa = rx >> addrshift
+ya = ry >> addrshift
+GOSUB Light_XYC
+
+color = 1
+xa = gx >> addrshift
+ya = gy >> addrshift
+GOSUB Light_XYC
+
+color = 2
+xa = yx >> addrshift
+ya = yy >> addrshift
+GOSUB Light_XYC
+
+GOTO main
+
+
+
+
+' init
+'x = 0
+'y = 16
+'dx = 255
+'dy = 255
+
+
+'rgdata = 0
+
+'clock = 0
+'latch = 0
+'enable = 0
+'color = 0
+
+'i = 0
+'j = 0
+
+' seed the random number generator
+'WRITE 0, 234
+'READ 0, (Word)r
+'RANDOM r
+'WRITE 0, (Word)r
+
+'RANDOM r
+'rlen = r >> 5
+
+'RANDOM r
+'x = r >> 4
+
+'RANDOM r
+'y = r >> 4
+
+'LOOP1:
+'  i = i + 1
+'  IF i = rlen THEN
+    'color = color + 1
+'    i = 0
+'    RANDOM r
+'    dx = r.HIGHBYTE '>> 0 + 1
+'    dy = r.LOWBYTE '>> 0 + 1
+
+ '   RANDOM r
+    'clen = (256 - r.LOWBYTE) >> 2
+'    clen = 255 >> (r.HIGHBYTE.LOWNIB >> 1)
+
+'    yo = r.LOWBYTE.HIGHNIB
+'    yo = 0
+
+    'RANDOM r
+    'xo = r
+
+'  RANDOM r
+'  rlen = r >> 5
+
+'  RANDOM r
+'  x = r >> 4
+
+'  RANDOM r
+'  y = r >> 4
+
+'  ENDIF
+
+'  xa = x >> 8
+'  ya = y >> 8
+
+  'IF(xa = lx) THEN skip1
+
+'  LOOKUP xa, [x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16], xx
+'  SHIFTOUT color, clockpin, 1, [xx \ 16]
+'  PULSOUT latchpin, 1
+
+'skip1:
+
+  'IF(ya = ly) THEN skip2
+
+'  addr = ya ^ yo
+'  PULSOUT enablepin, 1
+
+'skip2:
+
+'  x = x + dx
+'  y = y + dy
+
+'  IF x > 4095 OR x < 0 THEN
+'    dx = - dx
+'    x = x + dx
+'  ENDIF
+
+'  IF y > 4095 OR y < 0 THEN
+'    dy = -dy
+'    y = y + dy
+'  ENDIF
+
+  'lx = xa
+  'ly = ya
+
+  'color = color + 1
+'  j = j + 1
+'  IF j = clen THEN
+'    j = 0
+'    color = (color + 1) // 3
+'  ENDIF
+
+'GOTO LOOP1
+
+
+
+Light_XYC:
+  LOOKUP xa, [x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16], xx
+
+'  addr = ya
+  latch = 0
+  enable = 1
+
+  SHIFTOUT color, clockpin, 1, [xx \ 16]
+'  addr = ya
+'  PULSOUT latchpin, 1
+  latch = 1
+
+  addr = ya
+  enable = 0
+
+'  PULSOUT enablepin, 1
+  RETURN

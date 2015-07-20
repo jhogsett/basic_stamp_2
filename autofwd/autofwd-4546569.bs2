@@ -1,0 +1,247 @@
+' {$STAMP BS2}
+startbtn VAR IN0
+indicator CON 1
+hooksw CON 2
+audioout CON 3
+spkr CON 4
+freq1 CON 1976 'B7
+freq2 CON 2489 'D#8
+freq3 CON 3951 'B8
+shortbeep CON 50
+longbeep CON 250
+
+indstate VAR Bit
+indcount VAR Word
+indrate CON 200
+
+ontime CON 150
+offtime CON 25
+
+' state data to recover from power failure
+permstate DATA 0
+thestate VAR Byte
+
+'power on indicator
+HIGH indicator
+FREQOUT spkr,longbeep,freq1
+LOW indicator
+
+LOW indicator
+LOW hooksw
+
+READ permstate,thestate
+IF thestate = 0 THEN loopoff
+GOTO loopon
+
+loopoff:
+IF startbtn = 0 THEN loopoff
+
+' start indicator
+FREQOUT spkr,shortbeep,freq3
+
+HIGH indicator
+PAUSE 500
+
+HIGH hooksw
+PAUSE 1000
+
+IF startbtn = 1 THEN dooff
+
+LOW indicator
+DTMFOUT audioout,ontime,offtime,[7]
+HIGH indicator
+PAUSE offtime
+
+LOW indicator
+DTMFOUT audioout,ontime,offtime,[2]
+HIGH indicator
+PAUSE offtime
+
+LOW indicator
+DTMFOUT audioout,ontime,offtime,[11]
+HIGH indicator
+PAUSE offtime
+
+'dtmfout audioout,ontime,offtime,[7,2,11]
+
+PAUSE 500
+
+LOW indicator
+DTMFOUT audioout,ontime,offtime,[4]
+HIGH indicator
+PAUSE offtime
+
+LOW indicator
+DTMFOUT audioout,ontime,offtime,[5]
+HIGH indicator
+PAUSE offtime
+
+LOW indicator
+DTMFOUT audioout,ontime,offtime,[4]
+HIGH indicator
+PAUSE offtime
+
+LOW indicator
+DTMFOUT audioout,ontime,offtime,[6]
+HIGH indicator
+PAUSE offtime
+
+LOW indicator
+DTMFOUT audioout,ontime,offtime,[5]
+HIGH indicator
+PAUSE offtime
+
+LOW indicator
+DTMFOUT audioout,ontime,offtime,[6]
+HIGH indicator
+PAUSE offtime
+
+LOW indicator
+DTMFOUT audioout,ontime,offtime,[9]
+HIGH indicator
+PAUSE offtime
+
+'dtmfout audioout,ontime,offtime,[6,1,9,9,4,0,1]
+
+PAUSE 12000
+
+LOW hooksw
+PAUSE 4000
+
+HIGH hooksw
+PAUSE 1000
+
+LOW indicator
+DTMFOUT audioout,ontime,offtime,[7]
+HIGH indicator
+PAUSE offtime
+
+LOW indicator
+DTMFOUT audioout,ontime,offtime,[2]
+HIGH indicator
+PAUSE offtime
+
+LOW indicator
+DTMFOUT audioout,ontime,offtime,[11]
+HIGH indicator
+PAUSE offtime
+
+'dtmfout audioout,ontime,offtime,[7,2,11]
+
+PAUSE 500
+
+LOW indicator
+DTMFOUT audioout,ontime,offtime,[4]
+HIGH indicator
+PAUSE offtime
+
+LOW indicator
+DTMFOUT audioout,ontime,offtime,[5]
+HIGH indicator
+PAUSE offtime
+
+LOW indicator
+DTMFOUT audioout,ontime,offtime,[4]
+HIGH indicator
+PAUSE offtime
+
+LOW indicator
+DTMFOUT audioout,ontime,offtime,[6]
+HIGH indicator
+PAUSE offtime
+
+LOW indicator
+DTMFOUT audioout,ontime,offtime,[5]
+HIGH indicator
+PAUSE offtime
+
+LOW indicator
+DTMFOUT audioout,ontime,offtime,[6]
+HIGH indicator
+PAUSE offtime
+
+LOW indicator
+DTMFOUT audioout,ontime,offtime,[9]
+HIGH indicator
+PAUSE offtime
+
+PAUSE 12000
+
+LOW hooksw
+
+PAUSE 500
+
+' now forwarding indicator
+FREQOUT spkr,longbeep,freq1
+FREQOUT spkr,longbeep,freq2
+
+indstate = 1
+indcount = 0
+
+' save permanent state to recover from power failure
+WRITE permstate,1
+
+loopon:
+indcount = indcount + 1
+IF indcount = indrate THEN toggleind
+
+IF startbtn = 0 THEN loopon
+GOTO dooff
+
+toggleind:
+indcount = 0
+indstate = indstate + 1
+
+IF indstate = 0 THEN toggle0
+HIGH indicator
+GOTO loopon
+
+toggle0:
+LOW indicator
+GOTO loopon
+
+dooff:
+
+' start indicator
+FREQOUT spkr,shortbeep,freq3
+
+HIGH indicator
+PAUSE 500
+
+HIGH hooksw
+PAUSE 1000
+
+LOW indicator
+DTMFOUT audioout,ontime,offtime,[7]
+HIGH indicator
+PAUSE offtime
+
+LOW indicator
+DTMFOUT audioout,ontime,offtime,[3]
+HIGH indicator
+PAUSE offtime
+
+LOW indicator
+DTMFOUT audioout,ontime,offtime,[11]
+HIGH indicator
+PAUSE offtime
+
+
+'dtmfout audioout,ontime,offtime,[7,3,11]
+
+PAUSE 1000
+
+LOW hooksw
+
+PAUSE 1000
+
+' no longer forwarding indicator
+FREQOUT spkr,longbeep,freq2
+FREQOUT spkr,longbeep,freq1
+
+LOW indicator
+
+' save permanent state to recover from power failure
+WRITE permstate,0
+
+GOTO loopoff

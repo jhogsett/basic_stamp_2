@@ -1,0 +1,106 @@
+' Siemens PD1165 displays
+
+' Uses 74676 tristate bus transceiver (2)
+
+' ==========================
+' pins
+' ==========================
+
+' 8-bit Address & Data Bus
+inbus		var	INL
+outbus		var	OUTL
+busdir		var	DIRL
+
+' Address write line (active low)
+_wr_addr	var	OUT8
+_wr_addr_dir	var	DIR8
+_wr_addr_pin	con	8
+
+' Data write line (active low)
+_wr_data	var	OUT9
+_wr_data_dir	var	DIR9
+_wr_data_pin	con	9
+
+' Data latch direction line
+' LOW=Read data from display
+' HIGH=Write data to latch
+dir		var	OUT10
+dir_dir		var	DIR10
+dir_pin		con	10
+
+' PD1165 write line
+_wr_disp	var	OUT11
+_wr_disp_dir	var 	DIR11
+_wr_disp_pin	con	11
+
+
+' ==========================
+' general workspace
+' ==========================
+i		var	byte
+w		var	word
+
+
+
+' ==========================
+' init
+' ==========================
+
+' bus defaults to output
+busdir = %11111111
+
+' write lines are outputs
+_wr_addr_dir = 1
+_wr_data_dir = 1
+_wr_disp_dir = 1
+
+' data direction line is output
+dir_dir = 1
+
+' write lines must start HIGH
+_wr_addr = 1
+_wr_data = 1
+_wr_disp = 1
+
+' data direction starts HIGH
+dir = 1
+
+
+
+
+' ==========================
+' Initialize the PD1165
+' ==========================
+
+' set address to control word
+outbus = %00001000
+pulsout _wr_addr_pin,1
+
+' set data as appropriate
+outbus = %00000111
+pulsout _wr_data_pin,1
+
+' now send to display
+pulsout _wr_disp_pin,1
+
+
+
+
+
+loop:
+	random w
+
+	outbus = w.lowbyte & %00000111
+	pulsout _wr_addr_pin,1
+
+	outbus = w.highbyte 
+	pulsout _wr_data_pin,1
+
+	pulsout _wr_disp_pin,1
+
+	goto loop
+	
+
+
+
+

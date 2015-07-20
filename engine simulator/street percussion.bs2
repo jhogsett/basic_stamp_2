@@ -1,0 +1,63 @@
+' {$STAMP BS2}
+' {$PBASIC 2.5}
+
+DIRS = %1111111111111111
+
+OUTS = %0000000000000000
+
+
+
+speed VAR Byte
+times VAR Byte
+r VAR Word
+i VAR Byte
+
+speed = 125
+main:
+
+FOR i = 0 TO 63
+RANDOM r
+OUTL = i ^ r.LOWBYTE
+PAUSE speed + r.BIT15 + r.BIT14 + r.BIT13
+NEXT
+GOTO main
+
+RANDOM r
+OUTL = r.LOWBYTE
+PAUSE 500
+GOTO main
+
+
+FOR speed = 1 TO 1000
+
+FOR times = 1 TO 20
+
+OUTL = %00000001
+
+PAUSE speed + r.BIT15
+
+OUTL = %00010000
+
+PAUSE speed + r.BIT14
+
+OUTL = %00000100
+
+PAUSE speed + r.BIT13
+
+OUTL = %00100000
+
+PAUSE speed + r.BIT12
+
+OUTL = %00000010
+
+PAUSE speed + r.BIT11
+
+OUTL = %00001000
+
+PAUSE speed + r.BIT10
+
+NEXT
+
+NEXT
+
+GOTO main

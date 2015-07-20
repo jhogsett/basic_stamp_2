@@ -1,0 +1,596 @@
+'{$STAMP BS2}
+
+' ring8 & later hardware device
+
+rndsave data word (1)
+phnum data (16)
+progress data 255 ' for real-time feature switching
+
+spkr_hi con 9
+spkr_lo con 8
+spkr var nib
+i var byte
+r var byte
+s var word
+n var byte
+d var nib
+d1 var nib
+d2 var nib
+d3 var nib
+d4 var nib
+rnd var word
+x var word
+rn var byte
+country var nib
+us con 0
+uk con 1
+dialtype var nib
+local con 0
+longdist con 1
+intl con 2
+ndialtypes con 3
+ledout var out15
+leddir var dir15
+progresstypes con 4
+progress_dialtone con 0
+progress_dialing con 1
+progress_ringing con 2
+progress_end con 3
+prog var nib
+startprog var nib
+
+init:
+country = us
+
+gosub reload_rnd
+
+gosub get_progress
+startprog = prog
+
+'pause 1000
+
+loop:
+'goto loop:
+
+spkr = spkr_hi
+
+gosub gen_number
+
+'rn = ndialtypes
+'gosub get_rnd
+'dialtype = x
+'debug dec? x
+'goto loop
+'dialtype = 2
+
+'goto dialtypeintl
+'goto dialtypelong
+
+if startprog = progress_end then dialtypeintl
+
+rn = 50
+gosub get_rnd
+if x < 30 then dialtypelocal
+if x < 45 then dialtypelong
+
+dialtypeintl:
+dialtype = intl
+goto past_dial_type
+
+dialtypelocal:
+dialtype = local
+goto past_dial_type
+
+dialtypelong:
+dialtype = longdist
+
+
+past_dial_type:
+gosub start_call
+prog = progress_dialtone
+gosub set_progress
+
+'gosub kerchunk
+gosub click
+'pause 50
+'pause 125
+pause 190 ' longer pause before dial tone is more natural
+
+n = 2
+gosub us_dial
+
+if not startprog = progress_dialtone then past_coins
+
+do_coins:
+branch dialtype,[do_local_coins,do_longdist_coins,do_intl_coins]
+
+do_local_coins:
+gosub quarter
+n = 1
+gosub us_dial
+goto past_do_coins
+
+do_longdist_coins:
+rn = 3
+gosub get_rnd
+for i = 1 to x
+	gosub quarter
+	n = 1
+	gosub us_dial
+next
+do_longdist_coins2:
+rn = 3
+gosub get_rnd
+for i = 1 to x
+	gosub dime
+	n = 1
+	gosub us_dial
+next
+rn = 3
+gosub get_rnd
+for i = 1 to x
+	gosub nickel
+	n = 1
+	gosub us_dial
+next 
+goto past_do_coins
+
+do_intl_coins:
+rn = 7
+gosub get_rnd
+for i = 1 to x
+	gosub quarter
+	n = 1
+	gosub us_dial
+next 
+goto do_longdist_coins2
+
+past_do_coins:
+
+past_coins:
+
+prog = progress_dialing
+gosub set_progress
+
+if dialtype = intl then do_intl
+
+do_us:
+'rn = 2
+'gosub get_rnd
+'branch x,[do_dtmf,do_rotary]
+'goto do_rotary
+if startprog = progress_dialing then do_rotary
+
+do_dtmf:
+gosub us_dtmf_dial
+goto start1
+
+do_rotary:
+gosub rotary_dial
+
+start1:
+prog = progress_ringing
+gosub set_progress
+pause 500
+gosub end_call
+gosub kerchunk
+gosub click
+gosub start_call
+pause 2000
+gosub click
+pause 150
+goto start2
+
+
+start2:
+
+spkr = spkr_lo
+
+rn = 10
+gosub get_rnd
+
+branch x,[do_ring,do_ring,do_ring,do_ring,do_busy,do_busy,do_busy,do_busy,do_error,do_reorder]
+
+do_ring:
+n = 4
+gosub us_ring
+goto after
+
+do_busy:
+n = 3
+gosub us_busy
+goto fast_after
+
+do_reorder:
+n = 5
+gosub us_reorder
+goto fast_after
+
+do_error:
+gosub us_error
+goto fast_after
+
+after:
+
+'spkr = spkr_hi
+
+pause 500
+'gosub kerchunk
+fast_after:
+gosub click
+
+gosub end_call
+
+prog = progress_end
+gosub set_progress
+
+pause 3000
+goto loop
+
+
+
+do_intl:
+gosub intl_dtmf_dial
+prog = progress_ringing
+gosub set_progress
+pause 500
+gosub kerchunk
+gosub click
+pause 2000
+gosub click
+pause 2000
+
+spkr = spkr_lo
+
+n = 7
+gosub bluebox_dial
+pause 2000
+'gosub click
+'pause 200
+
+'spkr = spkr_hi
+
+'rn = 8
+'gosub get_rnd
+'branch x,[do_uk_ring,do_uk_ring,do_uk_ring,do_uk_ring,do_uk_busy,do_uk_busy,do_uk_busy,do_uk_busy]
+
+do_uk_ring:
+n = 4
+gosub uk_ring
+goto uk_after
+
+do_uk_busy:
+n = 5
+gosub uk_busy
+goto uk_after
+
+uk_after:
+
+'spkr = spkr_hi
+
+pause 500
+'gosub kerchunk
+gosub click
+pause 175
+gosub click
+pause 175
+spkr = spkr_lo
+gosub trunk_rel
+pause 175
+gosub click
+spkr = spkr_hi
+
+gosub end_call
+
+prog = progress_end
+gosub set_progress
+
+pause 3000
+goto loop
+
+
+
+us_dial:
+s = n * 1000
+freqout spkr,s,350,440
+return
+
+uk_dial:
+s = n * 1000
+freqout spkr,s,350
+return
+
+
+us_ring:
+for r = 1 to n
+	freqout spkr,2000,440,480
+	if r = n then us_ring1
+	pause 4000
+next
+us_ring1:
+return
+
+uk_ring:
+for r = 1 to n
+	freqout spkr,400,400,450
+	pause 200
+	freqout spkr,400,400,450
+	pause 2000
+next
+return
+
+us_busy:
+for r = 1 to n
+	freqout spkr,500,480,620
+	pause 500
+next
+return
+
+uk_busy:
+for r = 1 to n
+	freqout spkr,400,400
+	pause 400
+next
+return
+
+
+
+us_reorder:
+for r = 1 to n
+	freqout spkr,300,480,620
+	pause 200
+next
+return
+
+us_error:
+freqout spkr,274,914
+freqout spkr,274,1371
+'freqout spkr,380,1371
+freqout spkr,380,1777
+return
+
+call_card:
+freqout spkr,60,941,1477
+freqout spkr,940,350,440 ' needs to be able to decay
+return
+
+kerchunk:
+pulsout spkr,30000
+pause 50
+return
+
+click:
+pulsout spkr,100
+return
+
+nickel:
+freqout spkr,66,1700,2200
+return
+
+dime:
+freqout spkr,66,1700,2200
+pause 66
+freqout spkr,66,1700,2200
+return
+
+quarter:
+for r= 1 to 5
+	freqout spkr,33,1700,2200
+	pause 33
+next 
+return
+
+us_dtmf_dial:
+if dialtype = local then local_only
+read phnum,d1
+dtmfout spkr,250,150,[d1]
+pause 300
+read phnum+1,d1
+read phnum+2,d2
+read phnum+3,d3
+dtmfout spkr,175,150,[d1,d2,d3]
+pause 400
+local_only:
+read phnum+4,d1
+read phnum+5,d2
+read phnum+6,d3
+dtmfout spkr,170,150,[d1,d2,d3]
+pause 160
+read phnum+7,d1
+read phnum+8,d2
+dtmfout spkr,155,150,[d1,d2]
+pause 75
+read phnum+9,d1
+dtmfout spkr,150,150,[d1]
+read phnum+10,d1
+dtmfout spkr,205,150,[d1]
+return
+
+'rotary 10 pulses per second, break/make 60/40, 300ms between digits
+rotary:
+for r = 1 to n
+	ledout = 0
+	pulsout spkr,30000
+	ledout = 1
+	pause 40
+next
+pause 800
+return
+
+rotary_dial:
+for i = 0 to 10
+	read phnum+i,n
+	gosub rotary
+next
+return
+
+intl_dtmf_dial:
+d1 = 0
+d2 = 1
+d3 = 1
+dtmfout spkr,170,150,[d1,d2,d3]
+pause 400
+d1 = 4
+d2 = 4
+dtmfout spkr,190,150,[d1,d2]
+pause 400
+read phnum+1,d1
+read phnum+2,d2
+read phnum+3,d3
+read phnum+4,d4
+dtmfout spkr,170,150,[d1,d2,d3,d4]
+pause 160
+read phnum+5,d1
+read phnum+6,d2
+dtmfout spkr,155,150,[d1,d2]
+pause 75
+read phnum+7,d1
+dtmfout spkr,150,150,[d1]
+read phnum+8,d1
+dtmfout spkr,205,150,[d1]
+return
+
+
+
+gen_number:
+' position 0 - zero or one
+write phnum, 1
+' position 1, first digit of area code
+rn = 8
+gosub get_rnd
+write phnum+1,x+2
+' positions 2 & 3, second and third digits of area code
+rn = 10
+for i = 1 to 2
+	gosub get_rnd
+	write phnum+i+1,x
+next
+' position 4, first digit of exchange
+rn = 8
+gosub get_rnd
+write phnum+4,x+2
+' positions 5 & 6, second and third digits of exchange
+rn = 10
+for i = 1 to 2
+	gosub get_rnd
+	write phnum+i+4,x
+next
+' positions 7-11, last four digits
+for i = 1 to 4
+	gosub get_rnd
+	write phnum+i+6,x
+next
+return
+
+get_rnd:
+random rnd
+x = ((rnd.lowbyte * rn) / 256)
+gosub save_rnd
+return
+
+save_rnd:
+write rndsave, rnd.lowbyte
+write rndsave+1, rnd.highbyte
+return
+
+
+
+reload_rnd:
+read rndsave, rnd.lowbyte
+read rndsave+1, rnd.highbyte
+return
+
+
+bluebox_dial:
+'d = 10
+'gosub bluebox_digit
+'pause 1000
+d = 14
+pause 60
+gosub bluebox_digit
+for i = 0 to n
+	read phnum+i,d
+	gosub bluebox_digit
+	pause 60
+next
+d = 15
+gosub bluebox_digit
+return
+
+
+
+
+bluebox_digit:
+branch d,[bd0,bd1,bd2,bd3,bd4,bd5,bd6,bd7,bd8,bd9,bd26,bd11,bd12,bdkp1,bdkp2,bdst]
+bd0:
+freqout spkr,60,1300,1500
+goto bbd_done
+bd1:
+freqout spkr,60,700,900
+goto bbd_done
+bd2:
+freqout spkr,60,700,1100
+goto bbd_done
+bd3:
+freqout spkr,60,900,1100
+goto bbd_done
+bd4:
+freqout spkr,60,700,1300
+goto bbd_done
+bd5:
+freqout spkr,60,900,1300
+goto bbd_done
+bd6:
+freqout spkr,60,1100,1300
+goto bbd_done
+bd7:
+freqout spkr,60,700,1500
+goto bbd_done
+bd8:
+freqout spkr,60,900,1500
+goto bbd_done
+bd9:
+freqout spkr,60,1100,1500
+goto bbd_done
+bd26:
+freqout spkr,100,2600
+goto bbd_done
+bd11:
+freqout spkr,100,700,1700
+goto bbd_done
+bd12:
+freqout spkr,100,900,1700
+goto bbd_done
+bdkp1:
+freqout spkr,100,1100,1700
+goto bbd_done
+bdkp2:
+freqout spkr,100,1300,1700
+goto bbd_done
+bdst:
+freqout spkr,100,1500,1700
+goto bbd_done
+bbd_done:
+return
+
+trunk_rel:
+freqout spkr,20,2600
+return
+
+start_call:
+leddir = 1
+ledout = 1
+return
+
+end_call:
+leddir = 0
+ledout = 0
+return
+
+set_progress:
+write progress,prog
+return
+
+get_progress:
+read progress,prog
+return

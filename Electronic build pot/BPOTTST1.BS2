@@ -1,0 +1,9 @@
+r var word
+
+DIRS = %1111111111111111
+
+loop:
+random r
+OUTH = r.lowbyte
+goto loop
+ 

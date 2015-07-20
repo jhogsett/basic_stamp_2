@@ -1,0 +1,476 @@
+' build pot machine
+
+' boolean constants
+IN		con	0
+OUT		con 	1
+ON		con     1
+OFF		con 	0
+
+' hardware definitions
+LED_ADDR	var	OUTC
+LED_DATA	var	OUT12
+LED_WRITE	con	13
+LED_DIRMASK	con	%0011111100000000
+
+LCD_BUS		var	OUTA
+LCD_RS		con	4
+LCD_E		con	5
+LCD_DIRMASK	con	%0000000000111111
+
+DBA_LATCH	var	IN6
+DBA_CLEAR	con	7
+DBA_DIRMASK	con	%0000000010000000
+
+SND_START	con	14
+SND_DIRMASK	con	%0100000000000000
+
+SPKR		con	15
+SPKR_DIRMASK	con	%1000000000000000
+
+DIRMASK		con	LED_DIRMASK | LCD_DIRMASK | DBA_DIRMASK | SND_DIRMASK | SPKR_DIRMASK
+
+
+' program constants
+to_ms		con	500		' muliply factor for pulsout
+SIMPLETIME	con	300		' time for simple led patterns
+ANNOUNCETIME	con	30000		' how often to announce
+ANNOUNCELEN	con	790
+ACCEPTMSGTIME	con	500		' msg cycle time
+ACCEPTLOOP	con	5
+ACCEPTFANCYTIME con	70
+BEEPTIME	con	10
+
+
+' program data
+potamt		data	(1)
+filler		data	(15)
+announcement	data	"                Electronic Build Pot  -  designed by Jerry Hogsett  -  (c) 1996",0
+buildpot1	data	"Build Pot  $X.00",0
+bp1_fill	con	12
+buildpot2	data	"Build Pot $XX.00",0
+bp2_fill	con	11
+buildpot3	data	"Mega Pot    $XXX",0
+bp3_fill	con	13
+acceptmsg1	data    "Dollar Accepted ",0
+acceptmsg2	data 	"Hah!  Hah!  Hah!",0
+acceptmsg3	data	" You Blew It!!! ",0
+acceptmsg4	data	" You Blew It!!! ",0
+acceptmsg5	data	" You Blew It!!! ",0
+acceptmsg6	data	" You Blew It!!! ",0
+
+' program variables
+
+ledaddr		var	nib		' arguments for led_write
+leddata		var	bit
+
+char		var	byte		' arguments for lcd_write
+lcd_temp	var	byte		' temp use by lcd_write
+strptr		var	word		' argument for lcd_strout
+lsi		var	byte		' work variable for lcd_strout_inc
+ls_i		var 	byte		' internal to lcd_strout
+amt		var	byte		' used by lcd_disp_amt
+
+r		var	word		' general use
+i		var	word
+j		var	byte		
+
+led_a		var	nib		' fancy led working vars
+led_b		var	nib
+led_ad		var	bit
+led_bd		var	bit
+led_t		var	word
+
+ann_t		var	word		' announce_inc working vars
+
+
+ restart:
+' hardware init
+DIRS = DIRMASK
+LOW LED_WRITE
+HIGH DBA_CLEAR
+PULSOUT DBA_CLEAR,1
+gosub lcd_init
+
+main:
+gosub lcd_clear
+gosub led_clear
+gosub led_simple_reset
+gosub lcd_disp_amt
+
+' to prevent announcement on reset
+ann_t = ANNOUNCETIME
+
+loop:
+	gosub led_simple_inc
+	gosub announce_inc
+	gosub accept_inc
+	goto loop	
+
+
+
+
+
+'******************************************************************
+'LED Circle Routines 
+'******************************************************************
+
+' set ledaddr to 0-11, leddata to 0-1
+led_set:
+	LED_ADDR = ledaddr
+	LED_DATA = leddata
+	pulsout LED_WRITE, 1
+	return
+
+
+' clear the LEDs to blank
+led_clear:
+	for i = 0 to 11
+		ledaddr = i
+		leddata = OFF
+		gosub led_set
+	next
+	return
+
+
+' increment to the next fancy LED pattern
+led_fancy_inc:
+	if led_t > 0 then led_fancy_inc5
+
+led_fancy_inc1:
+	' choose new random values
+	random r
+	led_a = r.lownib
+	if led_a > 11 then led_fancy_inc1
+
+led_fancy_inc2:
+	random r
+	led_b = r.lownib
+	if led_b > 11 then led_fancy_inc2
+	if led_a = led_b then led_fancy_inc2
+	if abs(led_a-led_b) = 1 then led_fancy_inc2
+	if abs(led_a-led_b) = 11 then led_fancy_inc2
+	if abs(led_a-led_b) = 2 then led_fancy_inc2
+	if abs(led_a-led_b) = 10 then led_fancy_inc2
+
+	random r
+	led_ad = r.bit0
+'	random r
+'	bd = r.bit0
+	random r
+	led_t = r.lowbyte / 32
+	led_t = (led_t + 8)  * 12
+
+led_fancy_inc5:
+	ledaddr = led_a
+	leddata = 1
+	gosub led_set
+
+	ledaddr = led_b
+	leddata = 0
+	gosub led_set
+
+	led_a = (led_a - 1) + (2 * led_ad)
+	led_b = (led_b - 1) + (2 * led_ad)	' looks better
+
+	if led_a = 12 then led_fancy_inc6
+	goto led_fancy_inc7
+led_fancy_inc6:
+	led_a = 0
+led_fancy_inc7:
+	if led_a = 15 then led_fancy_inc8
+	goto led_fancy_inc9
+led_fancy_inc8:
+	led_a = 11
+led_fancy_inc9:
+	if led_b = 12 then led_fancy_inc10
+	goto led_fancy_inc11
+led_fancy_inc10:
+	led_b = 0
+led_fancy_inc11:
+	if led_b = 15 then led_fancy_inc12
+	goto led_fancy_inc13
+led_fancy_inc12:
+	led_b = 11
+led_fancy_inc13:
+
+	led_t = led_t - 1
+	return
+
+' call first before starting
+led_fancy_reset:
+	led_t = 0
+	return
+
+
+' increment to the next simple led pattern
+led_simple_inc:
+	if led_t > 0 then led_simple_inc5
+
+	'choose new random values
+led_simple_inc1:
+	random r
+	led_a = r.lownib
+	if led_a > 11 then led_simple_inc1
+	if led_a = led_b then led_simple_inc1
+	led_b = led_a
+	led_t = SIMPLETIME
+
+led_simple_inc5:
+	if led_t > (SIMPLETIME / 2) then led_simple_inc7
+
+	' turn LED off
+	ledaddr = led_a
+	leddata = 0
+	gosub led_set
+	goto led_simple_inc9
+
+led_simple_inc7:
+	' turn LED on
+	ledaddr = led_a
+	leddata = 1
+	gosub led_set
+
+led_simple_inc9:
+	led_t = led_t - 1
+	return
+
+led_simple_reset:
+	led_t = 0
+	led_b = 0
+	return
+
+
+
+'******************************************************************
+'LCD Display Routines
+'******************************************************************
+
+lcd_init:	
+	LCD_BUS = 0		'Clear the output lines
+	pause 200		'Wait 200 ms for LCD to reset. 
+	LOW LCD_RS
+
+	' Initialize the LCD in accordance with Hitachi's 
+	' instructions for 4-bit interface. 
+	LCD_BUS = %0011		'Set to 8-bit operation. 
+	for i = 1 to 3
+		pulsout LCD_E,1		'Send data three times
+		pause 10		'to initialize LCD. 
+	next
+
+	LCD_BUS = %0010		'Set to 4-bit operation. 
+	pulsout LCD_E,1
+
+	' send a series of initializations to the LCD display
+	' display on, blinking, cursor moves right, clear
+	for i = 0 to 4
+		lookup i,[%00001101,%00000110,%00000010,%00000001,%10000000],char
+		gosub lcd_write
+	next
+	high LCD_RS		'Prepare to send characters. 
+	return	
+
+
+' Write the ASCII character in char to LCD. 
+lcd_write:	
+	lcd_temp = char/16	    'Put high nibble of b3 into b2. 
+	LCD_BUS = lcd_temp
+	pulsout LCD_E,1		    'Blip enable pin. 
+	lcd_temp = char & %00001111 'Put low nibble of b3 into b2. 
+	LCD_BUS = lcd_temp
+	pulsout LCD_E,1		    'Blip enable. 
+	return
+
+
+' move cursor to the character pos in char
+lcd_pos:
+	low LCD_RS
+	char = %10000000 | (char & %00001111)
+	gosub lcd_write
+	high LCD_RS
+	return
+
+
+lcd_clear:	
+	low LCD_RS		'Change to instruction register. 
+	char = %00000001	'Clear the display. 
+	gosub lcd_write		'Write instruction to LCD. 
+	high LCD_RS		'Put RS back in character mode.
+
+	char = 0
+	gosub lcd_pos
+	return
+
+
+' Output the string pointed to by strptr to the LCD display
+lcd_strout:
+	char = 0
+	gosub lcd_pos 
+	for ls_i = strptr to strptr + 15	' max LCD display width
+		read ls_i,char
+		if char = 0 then lcd_strout8
+		gosub lcd_write
+	next
+lcd_strout8:
+	char = " "
+	if ls_i > strptr + 15 then lcd_strout9
+	gosub lcd_write
+	ls_i = ls_i + 1
+	goto lcd_strout8
+
+lcd_strout9:
+	return
+
+
+' output the next 16 chars of the string pointed to by strptr
+' set lsi to 0 for a new string
+lcd_strout_inc:
+	read strptr+lsi,char
+	if char = 0 then lcd_strout_inc8
+	strptr = strptr + lsi
+	gosub lcd_strout
+	strptr = strptr - lsi
+	lsi = lsi + 1
+	goto lcd_strout_inc9
+lcd_strout_inc8:
+	lsi = 0
+lcd_strout_inc9:
+	return
+
+
+' display build pot amount in potamt
+lcd_disp_amt:
+
+	read potamt,amt
+	if amt > 99 then lcd_disp_amt100
+	if amt > 9 then lcd_disp_amt10
+
+	' display amounts from $0-$9
+	write buildpot1+bp1_fill, (amt dig 0)+48
+	strptr = buildpot1
+	gosub lcd_strout
+	return
+
+lcd_disp_amt10:
+	' display amounts from $10-$99
+	write buildpot2+bp2_fill, (amt dig 1)+48
+	write buildpot2+bp2_fill+1, (amt dig 0)+48
+	strptr = buildpot2
+	gosub lcd_strout
+	return
+
+lcd_disp_amt100:
+	' display amounts $100+
+	write buildpot3+bp3_fill, (amt dig 2)+48
+	write buildpot3+bp3_fill+1, (amt dig 1)+48
+	write buildpot3+bp3_fill+2, (amt dig 0)+48
+	strptr = buildpot3
+	gosub lcd_strout
+	return
+
+
+
+
+'******************************************************************
+' Occasionally announce myself
+'******************************************************************
+
+announce_inc:
+
+	if ann_t = 0 then announce_doit
+	ann_t = ann_t - 1
+	return
+
+announce_doit:
+
+	gosub led_clear
+
+	lsi = 0
+	strptr = announcement
+
+	gosub led_fancy_reset
+
+	j = 0
+	for i = 1 to ANNOUNCELEN
+		gosub led_fancy_inc
+		pause 4
+
+		j = j + 1
+		if J < 10 then announce_doit1
+
+		j = 0
+		gosub lcd_strout_inc
+
+announce_doit1:
+	next
+
+	gosub led_clear
+	gosub lcd_clear
+
+	ann_t = ANNOUNCETIME
+
+	gosub led_simple_reset
+	return
+
+
+'******************************************************************
+'Accept a dollar
+'******************************************************************
+
+accept_inc:
+	if DBA_LATCH = 0 then accept_inc9
+
+	strptr = acceptmsg1
+	gosub lcd_strout
+
+	' turn on sound here
+
+	gosub led_fancy_reset
+
+	read potamt,j
+	write potamt,j+1
+
+accept_loop:
+
+	for j = 1 to ACCEPTLOOP
+
+		for i = 1 to ACCEPTFANCYTIME
+			gosub led_fancy_inc
+			gosub beep1
+'			pause 4
+		next
+	
+		strptr = acceptmsg2
+		gosub lcd_strout
+
+		for i = 1 to ACCEPTFANCYTIME
+			gosub led_fancy_inc
+			gosub beep1
+'			pause 4
+		next
+
+		strptr = acceptmsg3
+		gosub lcd_strout
+
+	next
+
+	' reset latch
+	pulsout DBA_CLEAR,1
+
+'	gosub led_clear
+'	gosub led_simple_reset
+'	gosub lcd_disp_amt
+'	ann_t = ANNOUNCETIME
+	' we've run out of return levels; just restart
+	goto main
+	
+accept_inc9:
+	return
+
+beep1:
+'	random r
+'	freqout spkr,10,(r.lowbyte + 10) * 15
+
+	freqout spkr,BEEPTIME,50*led_a	
+
+	return

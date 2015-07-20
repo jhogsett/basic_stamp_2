@@ -1,0 +1,66 @@
+'{$STAMP BS2}
+
+' random data to random rows
+
+
+' pin mappings
+addr 	var 	outc
+enable	var	out12
+rdata	var	out0
+gdata	var	out1
+rgdata	var	outa
+clock	var	out4
+latch	var	out5
+
+' set directions
+dirs = %0001111100110011
+outs = %1111111111111111
+
+' general variables
+i	var	nib
+j	var	nib
+r	var	word
+
+'addr = 0
+'enable = 1
+'rdata = 0
+'gdata = 0
+'clock = 0
+'latch = 1
+
+'rdata = 1
+'clock = 1
+'clock = 0
+'latch = 0
+'latch = 1
+'enable = 0
+
+loop:
+enable = 0
+'for i = 0 to 16
+
+	enable = 0
+	latch = 0
+	for j = 0 to 15
+
+		random r
+		gdata = r
+		random r
+		rdata = r
+		clock = 1
+		clock = 0
+
+	next 
+	enable = 1
+	latch = 1
+	latch = 0
+	enable = 0
+	
+'	addr = i
+
+	random r
+	addr = r
+
+'next 
+goto loop
+		

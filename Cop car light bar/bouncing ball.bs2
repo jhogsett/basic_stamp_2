@@ -1,0 +1,21 @@
+' {$STAMP BS2}
+' {$PBASIC 2.5}
+
+OUTS = $0000
+DIRS = $ffff
+
+i VAR Nib
+
+p CON 25
+
+main:
+FOR i = 0 TO 14
+  OUTS = 1 << i
+  PAUSE p
+NEXT
+FOR i = 15 TO 1
+  OUTS = 1 << i
+  PAUSE p
+NEXT
+GOTO main
+

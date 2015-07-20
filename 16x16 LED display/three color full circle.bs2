@@ -1,0 +1,73 @@
+'{$STAMP BS2px}
+
+' spiraling ball
+
+' pin mappings
+addr   VAR   OUTC
+enable  VAR  OUT12
+rdata  VAR  OUT0
+gdata  VAR  OUT1
+rgdata  VAR  OUTA
+clock  VAR  OUT4
+latch  VAR  OUT5
+color  VAR  Nib
+ctest  VAR  Nib
+
+' set directions
+DIRS = %0001111100110011
+OUTS = %1111111111111111
+
+' general variables
+x   VAR  Word
+y  VAR   Word
+i  VAR  Nib
+angle  VAR  Byte
+prevang VAR  Byte
+
+' init
+x = 1
+y = 1
+color = 1
+angle = 0
+
+loop:
+  prevang = angle
+  angle = angle + 10
+  x = ((COS -angle) + 128) / 16
+  y = ((SIN angle) + 128) / 16
+
+
+'  x = (x / 2 + 4)
+'  y = (y / 2 + 4)
+
+  enable = 0
+  latch = 0
+
+  FOR i = 0 TO 15
+
+    rgdata = 0
+    IF i <> x THEN skip1
+    rgdata = color
+
+skip1:
+    clock = 1
+    clock = 0
+
+  NEXT
+
+  enable = 1
+  latch = 1
+  latch = 0
+  enable = 0
+
+  addr = y
+
+  IF angle > prevang THEN skip2
+  color = color + 1
+
+  IF color <> 4 THEN skip2
+  color = 1
+
+skip2:
+
+GOTO loop

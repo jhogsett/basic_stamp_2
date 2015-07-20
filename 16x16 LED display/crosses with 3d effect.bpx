@@ -1,0 +1,176 @@
+'{$STAMP BS2px, circleanim1.bpx}
+' {$PBASIC 2.5}
+
+' demonstrates correct latch and enable timing
+
+' pin mappings
+addr   VAR   OUTC
+enable  VAR  OUT12
+rdata  VAR  OUT0
+gdata  VAR  OUT1
+rgdata  VAR  OUTA
+clock  VAR  OUT4
+clockpin CON 4
+latch  VAR  OUT5
+latchpin CON 5
+red CON 0
+green CON 1
+yellow CON 2
+
+' set directions
+DIRS = %0001111100110011
+OUTS = %1111111111111111
+
+w VAR Word
+
+' parameters for DoFrame subroutine
+frame VAR Byte
+times VAR Byte
+framebase VAR Byte
+scanline VAR Byte
+framecount VAR Byte
+framecolor VAR Nib
+
+startframe VAR Byte
+endframe VAR Byte
+framestep VAR Nib
+
+' 0 or 1 for scratchpad ram frame
+memframe VAR Bit
+
+
+clock = 0
+latch = 0
+enable = 0
+rgdata = 0
+
+STORE 2
+
+framestep = 8
+
+
+
+main:
+
+framecolor = red
+times = 4
+startframe = 0
+endframe = 16
+GOSUB DoFrameR
+
+framecolor = green
+GOSUB DoFrameR
+
+framecolor = yellow
+GOSUB DoFrameR
+
+GOTO main
+
+
+FOR frame = 0 TO 16
+GOSUB DoFrameR
+NEXT
+
+framecolor = green
+times = 4
+FOR frame = 0 TO 16
+GOSUB DoFrameR
+NEXT
+
+framecolor = yellow
+times = 4
+FOR frame = 0 TO 16
+GOSUB DoFrameR
+NEXT
+
+GOTO main
+
+
+
+DoFrame:
+  framebase = frame << 4
+  FOR scanline = framebase TO framebase + 15
+    READ scanline << 1, Word w
+
+  latch = 0
+  enable = 1
+
+    SHIFTOUT framecolor, clockpin, 1, [w \ 16]
+
+  latch = 1
+  addr = scanline.LOWNIB
+  enable = 0
+
+  NEXT
+RETURN
+
+DoFrameT:
+  framebase = frame << 4
+  FOR framecount = 1 TO times
+    FOR scanline = framebase TO framebase + 15
+      READ scanline << 1, Word w
+
+  latch = 0
+  enable = 1
+
+      SHIFTOUT framecolor, clockpin, 1, [w \ 16]
+
+  latch = 1
+  addr = scanline.LOWNIB
+  enable = 0
+
+    NEXT
+  NEXT
+
+DoFrameR:
+  FOR framecount = 1 TO times
+    FOR frame = startframe TO endframe STEP framestep
+      framebase = frame << 4
+      FOR scanline = framebase TO framebase + 15
+        READ scanline << 1, Word w
+        latch = 0
+        enable = 1
+        SHIFTOUT framecolor, clockpin, 1, [w \ 16]
+        latch = 1
+        addr = scanline.LOWNIB
+        enable = 0
+      NEXT
+    NEXT
+  NEXT
+RETURN
+
+' display the frame in scratch pad ram
+' uses:
+'   framebase, scanline, w
+' inputs:
+'   memframe 0-1, framecolor 0-2
+DoFrameM:
+  framebase = memframe << 4
+  FOR scanline = framebase TO framebase + 15
+    GET scanline << 1, Word w
+    latch = 0
+    enable = 1
+    SHIFTOUT framecolor, clockpin, 1, [w \ 16]
+    latch = 1
+    addr = scanline.LOWNIB
+    enable = 0
+  NEXT
+RETURN
+
+' copy a frame from memory to scratchpad ram
+' uses:
+' current STORE, w, framebase, scanline
+' inputs:
+'   frame 0-63, memframe 0-1
+GetFrameM:
+    framebase = frame << 4
+    FOR scanline = framebase TO framebase + 15
+      READ scanline << 1, Word w
+
+      latch = 0
+      enable = 1
+      SHIFTOUT framecolor, clockpin, 1, [w \ 16]
+      latch = 1
+      addr = scanline.LOWNIB
+      enable = 0
+    NEXT

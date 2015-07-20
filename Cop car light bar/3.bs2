@@ -1,0 +1,167 @@
+' {$STAMP BS2}
+' {$PBASIC 2.5}
+
+' format
+' cycles, delay, alternating, count
+
+pat0 DATA 16, 30, 1, 4
+     DATA %11111
+     DATA %00000
+     DATA %11111
+     DATA %00000
+     DATA %11111
+     DATA %00000
+     DATA %11111
+     DATA %00000
+     DATA %11111
+     DATA %00000
+     DATA %11111
+     DATA %00000
+     DATA %11111
+     DATA %00000
+     DATA %11111
+     DATA %00000
+
+pat1 DATA 2, 170, 0, 10
+     DATA %10101
+     DATA %01010
+
+' swing
+pat2 DATA 5, 120, 0, 10
+     DATA %10000
+     DATA %01000
+     DATA %00100
+     DATA %00010
+     DATA %00001
+     'DATA %00000
+
+' rotating
+pat3 DATA 5, 200, 0, 10
+     DATA %01001
+     DATA %10010
+     DATA %00101
+     DATA %01010
+     DATA %10100
+
+' snake
+pat4 DATA 10, 40, 1, 10
+     DATA %10000
+     DATA %11000
+     DATA %11100
+     DATA %11110
+     DATA %11111
+     DATA %01111
+     DATA %00111
+     DATA %00011
+     DATA %00001
+     DATA %00000
+
+' eyes
+pat5 DATA 9, 60, 0, 10
+     DATA %10000
+     DATA %01000
+     DATA %00100
+     DATA %00010
+     DATA %00001
+     DATA %00010
+     DATA %00100
+     DATA %01000
+     DATA %10000
+
+pat6 DATA 5, 80, 0, 5
+     DATA %10000
+     DATA %11000
+     DATA %11100
+     DATA %11110
+     DATA %11111
+
+' headlights
+pat7 DATA 12, 30, 1, 8
+     DATA $80
+     DATA $00
+     DATA $80
+     DATA $00
+     DATA $80
+     DATA $00
+     DATA $80
+     DATA $00
+     DATA $80
+     DATA $00
+     DATA $80
+     DATA $00
+     'DATA $80
+     'DATA $00
+     'DATA $80
+     'DATA $00
+
+program DATA 6
+        DATA Word pat0
+        DATA Word pat1
+        DATA Word pat2
+        DATA Word pat3
+        DATA Word pat4
+        DATA Word pat5
+        DATA Word pat7
+
+DIRS = $ffff
+OUTS = $0000
+
+in VAR Nib
+ib VAR Byte
+rw VAR Word
+tb VAR Byte
+jb VAR Byte
+kb VAR Byte
+lb VAR Byte
+c VAR Byte
+mb VAR Byte
+
+pattern VAR Word
+flashcount VAR Byte
+flashtime VAR Byte
+flashcycle VAR Byte
+alternating VAR Bit
+
+main:
+
+READ program, c
+FOR mb = 0 TO c
+  READ program + 1 + (mb << 1), Word pattern
+  GOSUB DoPattern
+NEXT
+GOTO main
+
+DoPattern:
+READ pattern, flashcycle
+READ pattern + 1, flashtime
+READ pattern + 2, alternating
+READ pattern + 3, flashcount
+
+IF alternating = 1 THEN DoAltPattern
+
+FOR jb = 1 TO flashcount
+  FOR kb = 1 TO flashcycle
+    READ pattern + 3 + kb, ib
+    OUTL = ib
+    OUTH = ib
+    PAUSE flashtime
+  NEXT
+NEXT
+RETURN
+
+DoAltPattern:
+FOR jb = 1 TO flashcount
+  OUTH = 0
+  FOR kb = 1 TO flashcycle
+    READ pattern + 3 + kb, ib
+    OUTL = ib
+    PAUSE flashtime
+  NEXT
+  OUTL = 0
+  FOR kb = 1 TO flashcycle
+    READ pattern + 3 + kb, ib
+    OUTH = ib
+    PAUSE flashtime
+  NEXT
+NEXT
+RETURN

@@ -1,0 +1,161 @@
+'{$STAMP BS2px}
+' {$PBASIC 2.5}
+'based on xor bounce 3 colors.bs2
+
+' bouncing ball
+
+' pin mappings
+addr   VAR   OUTC
+enable  VAR  OUT12
+enablepin CON 12
+rdata  VAR  OUT0
+gdata  VAR  OUT1
+rgdata  VAR  OUTA
+clock  VAR  OUT4
+clockpin CON 4
+latch  VAR  OUT5
+latchpin CON 5
+color  VAR  Nib
+ctest  VAR  Nib
+clen VAR Byte
+rlen VAR Word
+
+' set directions
+DIRS = %0001111100110011
+OUTS = %1111111111111111
+
+x1 CON  %1000000010000000
+x2 CON  %0100000001000000
+x3 CON  %0010000000100000
+x4 CON  %0001000000010000
+x5 CON  %0000100000001000
+x6 CON  %0000010000000100
+x7 CON  %0000001000000010
+x8 CON  %0000000100000001
+x9 CON  %1000000010000000
+x10 CON %0100000001000000
+x11 CON %0010000000100000
+x12 CON %0001000000010000
+x13 CON %0000100000001000
+x14 CON %0000010000000100
+x15 CON %0000001000000010
+x16 CON %0000000100000001
+
+' general variables
+x   VAR  Word
+y  VAR   Word
+i  VAR  Word
+dx  VAR  Word
+dy  VAR  Word
+xx VAR Word
+xa VAR Byte
+ya VAR Byte
+lx VAR Byte
+ly VAR Byte
+r VAR Word
+j VAR Byte
+xo VAR Nib
+yo VAR Nib
+
+' init
+x = 0
+y = 16
+dx = 255
+dy = 255
+
+
+rgdata = 0
+
+clock = 0
+latch = 0
+enable = 0
+color = 0
+
+i = 0
+j = 0
+
+' seed the random number generator
+'WRITE 0, 234
+'READ 0, (Word)r
+'RANDOM r
+'WRITE 0, (Word)r
+
+RANDOM r
+rlen = r >> 5
+
+'RANDOM r
+'x = r >> 4
+
+'RANDOM r
+'y = r >> 4
+
+LOOP1:
+  i = i + 1
+  IF i = rlen THEN
+    'color = color + 1
+    i = 0
+    RANDOM r
+    dx = r.HIGHBYTE '>> 0 + 1
+    dy = r.LOWBYTE '>> 0 + 1
+
+    RANDOM r
+    'clen = (256 - r.LOWBYTE) >> 2
+    clen = 255 >> (r.HIGHBYTE.LOWNIB & 7)
+    yo = r.LOWBYTE.HIGHNIB
+
+    'RANDOM r
+    'xo = r
+
+  RANDOM r
+  rlen = r >> 5
+
+  RANDOM r
+  x = r >> 4
+
+  RANDOM r
+  y = r >> 4
+
+  ENDIF
+
+  xa = x >> 8
+  ya = y >> 8
+
+  'IF(xa = lx) THEN skip1
+
+  LOOKUP xa ^ yo, [x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16], xx
+  SHIFTOUT color, clockpin, 1, [xx \ 16]
+  PULSOUT latchpin, 1
+
+skip1:
+
+  'IF(ya = ly) THEN skip2
+
+  addr = ya ^ yo
+  PULSOUT enablepin, 1
+
+skip2:
+
+  x = x + dx
+  y = y + dy
+
+  IF x > 4095 OR x < 0 THEN
+    dx = - dx
+    x = x + dx
+  ENDIF
+
+  IF y > 4095 OR y < 0 THEN
+    dy = -dy
+    y = y + dy
+  ENDIF
+
+  'lx = xa
+  'ly = ya
+
+  'color = color + 1
+  j = j + 1
+  IF j = clen THEN
+    j = 0
+    color = (color + 1) // 3
+  ENDIF
+
+GOTO LOOP1

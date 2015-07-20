@@ -1,0 +1,111 @@
+'{$STAMP BS2px}
+
+' bouncing ball
+
+' pin mappings
+addr   VAR   OUTC
+enable  VAR  OUT12
+rdata  VAR  OUT0
+gdata  VAR  OUT1
+rgdata  VAR  OUTA
+clock  VAR  OUT4
+clockpin CON 4
+latch  VAR  OUT5
+latchpin CON 5
+color  VAR  Nib
+ctest  VAR  Nib
+
+' set directions
+DIRS = %0001111100110011
+OUTS = %1111111111111111
+
+' general variables
+x   VAR  Byte
+y  VAR   Byte
+i  VAR  Nib
+dx  VAR  Byte
+dy  VAR  Byte
+r VAR Word
+
+' init
+x = 9
+y = 7
+dx = 1
+dy = 1
+color = 3
+
+clock = 0
+latch = 0
+enable = 0
+
+rgdata = 0
+
+' gdata = 0
+loop:
+''  enable = 0
+  'latch = 0
+
+  'RANDOM r
+  r = r + 1
+
+  SHIFTOUT 1, clockpin, 0, [r \ 16]
+
+''  FOR i = 0 TO 15
+
+''    rgdata = 0
+''    IF i <> x THEN skip1
+''    rgdata = color
+
+''skip1:
+    'clock = 1
+    'clock = 0
+''    PULSOUT clockpin, 1
+
+''  NEXT
+
+''  enable = 1
+
+  'latch = 1
+  'latch = 0
+  PULSOUT latchpin, 1
+
+  addr = addr + 1
+
+  GOTO loop
+
+''  enable = 0
+
+  addr = y
+
+dox:
+  x = x + dx
+  IF x > 15 THEN flipx
+  IF x < 0 THEN flipx
+  GOTO doy
+
+flipx:
+  dx = dx * -1
+  ' x = x + dx
+  color = color + 1
+
+doy:
+  y = y + dy
+  IF y > 15 THEN flipy
+  IF y < 0 THEN flipy
+  GOTO skip2:
+
+flipy:
+  dy = dy * -1
+  y = y + dy
+  color = color + 1
+
+skip2:
+  ctest = color & 3
+  IF ctest <> 0 THEN skip3
+  color = 1
+
+skip3:
+
+'debug dec x," ",dec y," ",dec dx," ",dec dy,cr
+
+GOTO loop

@@ -1,0 +1,323 @@
+'{$STAMP BS2px, circleanim1.bpx, windmillanim.bpx}
+' {$PBASIC 2.5}
+
+' set directions
+DIRS = %0001111100110011
+OUTS = %1111111111111111
+
+' pin mappings
+addr   VAR   OUTC
+enable  VAR  OUT12
+rdata  VAR  OUT0
+gdata  VAR  OUT1
+rgdata  VAR  OUTA
+clock  VAR  OUT4
+clockpin CON 4
+latch  VAR  OUT5
+latchpin CON 5
+red CON 0
+green CON 1
+yellow CON 2
+
+' initialize control pins
+clock = 0
+latch = 0
+enable = 0
+rgdata = 0
+
+framebufferoffset CON 64
+
+' working variables
+w VAR Word
+ww VAR Word
+r VAR Word
+b VAR Byte
+i VAR Word
+n VAR Nib
+x VAR Byte
+y VAR Byte
+lx VAR Byte
+ly VAR Byte
+j VAR Byte
+
+' parameters for DoFrame subroutines
+frame VAR Byte
+times VAR Byte
+framebase VAR Byte
+scanline VAR Byte
+framecount VAR Byte
+framecolor VAR Nib
+
+startframe VAR Byte
+endframe VAR Byte
+framestep VAR Nib
+
+frame1 VAR Byte
+frame2 VAR Byte
+
+' scratchpad ram frame 0=red 1=green
+memframe VAR Bit
+
+redframe CON 0
+greenframe CON 1
+
+'lx = 0
+'ly = 0
+'x = 0
+'y = 0
+
+'memframe = 0
+
+'frame1 = 0
+'frame2 = 0
+
+'STORE 1
+
+times = 10
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''
+'''''''''''''''''''''''''''''''''''''''''''''''''''
+start:
+
+x = 0
+
+
+main:
+'''''''''''''''''''''''''''''''''''''''''''''''''''
+'''''''''''''''''''''''''''''''''''''''''''''''''''
+
+FOR x = 0 TO 63
+  RANDOM r
+  PUT x, r.LOWBYTE
+NEXT
+
+
+
+
+
+
+
+GOSUB DoFrameMR
+
+GOTO main
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''
+'''''''''''''''''''''''''''''''''''''''''''''''''''
+'''''''''''''''''''''''''''''''''''''''''''''''''''
+'''''''''''''''''''''''''''''''''''''''''''''''''''
+
+DoFrame:
+  framebase = frame << 4
+  FOR scanline = framebase TO framebase + 15
+    READ scanline << 1, Word w
+
+  latch = 0
+  enable = 1
+
+    SHIFTOUT framecolor, clockpin, 1, [w \ 16]
+
+  latch = 1
+'  addr = scanline.LOWNIB
+  enable = 0
+
+  NEXT
+RETURN
+
+DoFrameT:
+  framebase = frame << 4
+  FOR framecount = 1 TO times
+    FOR scanline = framebase TO framebase + 15
+      READ scanline << 1, Word w
+      SHIFTOUT framecolor, clockpin, 1, [w \ 16]
+      enable = 1
+      PULSOUT latchpin, 1
+      addr = scanline.LOWNIB
+      enable = 0
+    NEXT
+  NEXT
+
+DoFrameR:
+  FOR framecount = 1 TO times
+    FOR frame = startframe TO endframe STEP framestep
+      framebase = frame << 4
+      FOR scanline = framebase TO framebase + 15
+        READ scanline << 1, Word w
+        latch = 0
+        enable = 1
+        SHIFTOUT framecolor, clockpin, 1, [w \ 16]
+        latch = 1
+'        addr = scanline.LOWNIB
+        enable = 0
+      NEXT
+    NEXT
+  NEXT
+RETURN
+
+' display the the red and green scratchpad frames
+' uses:
+'   scanline, w
+DoFrameM:
+  FOR j = 0 TO 16
+    b = j << 1
+    GET b, Word w
+    SHIFTOUT red, clockpin, 1, [w \ 16]
+    enable = 1
+    PULSOUT latchpin, 1
+    addr = j
+    enable = 0
+    GET b + framebufferoffset, Word w
+    SHIFTOUT green, clockpin, 1, [w \ 16]
+    'second addressing doesn't seem to be needed
+    'enable = 1
+    PULSOUT latchpin, 1
+    'addr = j
+    'enable = 0
+  NEXT
+RETURN
+
+'''this one doesn't blend the two colors well
+' display the the red and green scratchpad frames
+' uses:
+'   scanline, w
+DoFrameM2:
+  FOR j = 0 TO 16
+    b = j << 1
+    GET b, Word w
+    SHIFTOUT red, clockpin, 1, [w \ 16]
+    enable = 1
+    PULSOUT latchpin, 1
+    addr = j
+    enable = 0
+  NEXT
+  FOR j = 0 TO 16
+    b = j << 1
+    GET b + framebufferoffset, Word w
+    SHIFTOUT green, clockpin, 1, [w \ 16]
+    enable = 1
+    PULSOUT latchpin, 1
+    addr = j
+    enable = 0
+  NEXT
+RETURN
+
+' display the the red and green scratchpad frames
+' uses:
+'   scanline, w
+DoFrameMR:
+  FOR framecount = 0 TO times
+    FOR j = 0 TO 16
+      b = j << 1
+      GET b, Word w
+      SHIFTOUT red, clockpin, 1, [w \ 16]
+      enable = 1
+      PULSOUT latchpin, 1
+      addr = j
+      enable = 0
+      GET b + framebufferoffset, Word w
+      SHIFTOUT green, clockpin, 1, [w \ 16]
+      'second addressing doesn't seem to be needed
+      'enable = 1
+      PULSOUT latchpin, 1
+      'addr = j
+      'enable = 0
+    NEXT
+  NEXT
+RETURN
+
+
+' copy a frame from memory to scratchpad ram
+' uses:
+' current STORE, w, framebase, scanline, i
+' inputs:
+'   frame 0-63, memframe 0-1
+' this doesn't work past 8 frames
+CopyFrameMbad:
+  framebase = frame << 5
+  i = memframe << 6
+  FOR scanline = framebase TO framebase + 31 STEP 2
+    READ scanline, Word w
+    PUT scanline - framebase + i, Word w
+  NEXT
+RETURN
+
+' copy a frame from memory to scratchpad ram
+' uses:
+' current STORE, w, framebase, scanline, i
+' inputs:
+'   frame 0-63, memframe 0-1
+CopyFrameM:
+  framebase = frame << 4
+  i = memframe << 6
+  FOR scanline = framebase TO framebase + 15
+    READ scanline << 1, Word w
+    PUT (scanline.LOWNIB << 1) + i, Word w
+  NEXT
+RETURN
+
+' clear the scratchpad ram
+ClearMemFrames:
+  FOR w = 0 TO 64
+    PUT w, 0
+  NEXT
+RETURN
+
+' copy a frame from memory to scratchpad ram
+' uses:
+' current STORE, w, framebase, scanline
+' inputs:
+'   frame 0-63, memframe 0-1
+OrFrameM:
+  framebase = frame << 4
+  FOR scanline = framebase TO framebase + 15
+    READ scanline << 1, Word w
+    GET (scanline.LOWNIB << 1) + 32 + (memframe << 6), Word ww
+    w = w | ww
+    PUT (scanline.LOWNIB << 1) + (memframe << 6), Word w
+  NEXT
+RETURN
+
+
+' display the the red and green scratchpad frames
+' uses:
+'   scanline, w
+DoFrameMF:
+  FOR n = 0 TO 15
+    b = n << 1
+    GET b + (memframe << 6), Word w
+    SHIFTOUT memframe, clockpin, 1, [w \ 16]
+    enable = 1
+    PULSOUT latchpin, 1
+    addr = n
+    enable = 0
+  NEXT
+RETURN
+
+' display the the red and green scratchpad frames
+' uses:
+'   scanline, w
+DoFrameMRed:
+  FOR j = 0 TO 16
+    b = j << 1
+    GET b, Word w
+    SHIFTOUT red, clockpin, 1, [w \ 16]
+    enable = 1
+    PULSOUT latchpin, 1
+    addr = j.LOWNIB
+    enable = 0
+  NEXT
+RETURN
+
+' display the the red and green scratchpad frames
+' uses:
+'   scanline, w
+DoFrameMGreen:
+  FOR j = 0 TO 16
+    b = (j << 1) + framebufferoffset
+    GET b, Word w
+    SHIFTOUT green, clockpin, 1, [w \ 16]
+    enable = 1
+    PULSOUT latchpin, 1
+    addr = j.LOWNIB
+    enable = 0
+  NEXT
+RETURN

@@ -1,0 +1,303 @@
+' {$STAMP BS2px}
+', eyeball1a.bpx, eyeball2a.bpx, eyeball3a.bpx, eyeball4a.bpx}
+' {$PBASIC 2.5}
+
+' demonstrates further optimized 2 color video
+
+' 9 cells across
+
+' address = (y * 9 * 32) + (x * 9)
+' address = (y * 288) + (x * 9)
+'   for y >=5 add 1 to store
+'   for alt color add 2 to store
+
+' set directions
+DIRS = %0001111100110011
+OUTS = %1111111111111111
+
+addr   VAR   OUTC
+enable  VAR  OUT12
+rgdata  VAR  OUTA
+clock  VAR  OUT4
+clockpin CON 4
+latch  VAR  OUT5
+latchpin CON 5
+
+clock = 0
+latch = 0
+enable = 0
+rgdata = 0
+
+red CON 0
+green CON 1
+yellow CON 2
+
+r VAR Word
+w VAR Word
+ww VAR Word
+
+eyex VAR Nib
+eyey VAR Nib
+'eyey2 VAR Nib
+
+'frame VAR Byte
+framebase VAR Word
+'framebase2 VAR Word
+scanline VAR Word
+framecount VAR Byte
+'framecolor VAR Nib
+'f1 VAR Word
+'f2 VAR Word
+s VAR Nib
+'i VAR Nib
+j VAR Byte
+
+x VAR Word
+y VAR Word
+
+'newx VAR Word
+'newy VAR Word
+newx VAR framebase
+newy VAR scanline
+
+dirx VAR Bit
+diry VAR Bit
+
+dx VAR Word
+dy VAR Word
+
+times CON 1
+speed VAR Byte
+
+' 1 = master
+' 0 = slave
+mode VAR Bit
+
+mastermode CON 1
+slavemode CON 0
+
+master PIN 15
+slave PIN 14
+
+crosseyed VAR Bit
+
+x = 2304 / 2
+y = x
+
+speed = 10
+
+'main0:
+'newx = 0 * 256
+'newy = 9 * 256
+'GOSUB EyeMove
+'GOTO main0
+
+
+
+prestart:
+
+' make slave pin low
+DIR14 = 1
+OUT14 = 0
+
+' check for high on master pin
+DIR15 = 0
+IF IN15 = 0 THEN
+
+' if none, this is master
+  mode = mastermode
+
+  ' set to listen to slave pin
+  DIR14 = 0
+
+  ' make master pin high
+  DIR15 = 1
+  OUT15 = 1
+
+  ' wait indefinately for high on slave pin
+wait_for_slave:
+  IF IN14 = 0 THEN wait_for_slave
+
+  ' disable master pin
+  OUT15 = 0
+  DIR15 = 0
+
+  DEBUG "master",CR
+  GOTO start_done
+
+ELSE
+
+  ' if high, this is slave
+  mode = slavemode
+
+  ' make slave pin high
+  DIR14 = 1
+  OUT14 = 1
+
+  ' wait indefinately for low on master pin
+wait_for_master:
+  IF IN15 = 1 THEN wait_for_master
+
+  ' disable slave pin
+  OUT14 = 0
+  DIR14 = 0
+DEBUG "slave",CR
+
+ENDIF
+
+start_done:
+
+main:
+
+DIR15 = 1
+OUT15 = 1
+PAUSE 1
+OUT15 = 0
+DIR15 = 0
+
+main1:
+IF IN15 = 0 THEN main1
+
+DIR15 = 1
+OUT15 = 1
+PAUSE 1
+OUT15 = 0
+DIR15 = 0
+
+RANDOM r
+newx = r // 2304
+RANDOM r
+newy = r // 2304
+
+
+RANDOM r
+speed = 3 + (r & $07)
+'speed = 1
+'speed = 25
+
+' calculate cross-eyed
+'DEBUG BIN mode, " ", DEC (r & $10), CR
+
+'DEBUG BIN r,CR
+
+'sx VAR Word
+'sx = r & $10
+
+'DEBUG DEC sx, CR
+
+IF (mode = slavemode) AND ((r & $10) = 0) THEN
+'DEBUG "a"
+  IF newx < 1152 THEN
+    'DEBUG "b",CR
+    'DEBUG newx,CR
+    newx = 2303 - newx
+    'DEBUG newx,CR
+  ENDIF
+ENDIF
+
+GOSUB EyeMove
+
+'GOTO main
+
+RANDOM r
+FOR j = 1 TO 64 + (r.LOWBYTE & $3f)
+'FOR j = 1 TO 16 + (r.LOWBYTE & $0f)
+'FOR j = 1 TO 32
+  GOSUB DoFrameT
+NEXT
+
+'comment this to return to center each time
+GOTO main
+
+speed = 3
+
+newx = 1152
+newy = 1152
+
+GOSUB EyeMove
+
+'GOTO main
+
+RANDOM r
+FOR j = 1 TO 64 + (r.LOWBYTE & $3f)
+  GOSUB DoFrameT
+NEXT
+
+GOTO main
+
+
+EyeMove:
+IF newx >= x THEN
+  dx = (newx - x) / speed
+  dirx = 1
+ELSE
+  dx = (x - newx) / speed
+  dirx = 0
+ENDIF
+
+IF newy >= y THEN
+  dy = (newy - y) / speed
+  diry = 1
+ELSE
+  dy = (y - newy) / speed
+  diry = 0
+ENDIF
+
+FOR j = 1 TO speed
+  IF dirx = 1 THEN
+    x = x + dx
+  ELSE
+    x = x - dx
+  ENDIF
+
+  IF diry = 1 THEN
+    y = y + dy
+  ELSE
+    y = y - dy
+  ENDIF
+
+  eyex = x.HIGHBYTE
+  eyey = y.HIGHBYTE
+
+  GOSUB DoFrameT
+NEXT
+RETURN
+
+
+
+
+
+
+DoFrameT:
+  IF eyey <= 4 THEN
+    s = 1
+    'eyey2 = eyey
+  ELSE
+    s = 2
+    'eyey2 = eyey'-5
+  ENDIF
+
+  'framebase = (eyey2 * 288) + (eyex * 32)
+  'LOOKUP eyey2, [0, 288, 576, 864, 1152, 1440, 1728, 2016, 2304], w
+  LOOKUP eyey, [0, 288, 576, 864, 1152, 0, 288, 576, 864], w
+  LOOKUP eyex, [0, 32, 64, 96, 128, 160, 192, 224, 256], ww
+  framebase = w + ww
+  ww = framebase + 30
+
+  'FOR framecount = 1 TO times
+    FOR scanline = framebase TO ww STEP 2
+      STORE s
+      READ scanline, Word w
+      SHIFTOUT green, clockpin, 1, [w \ 16]
+      enable = 1
+      PULSOUT latchpin, 1
+      addr = (scanline >> 1) '& $0f
+      enable = 0
+
+      STORE s+2
+      READ scanline, Word w
+      SHIFTOUT red, clockpin, 1, [w \ 16]
+      PULSOUT latchpin, 1
+    NEXT
+  'NEXT
+RETURN

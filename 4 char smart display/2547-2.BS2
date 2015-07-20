@@ -1,0 +1,147 @@
+' pins
+
+dataio 		var OUTH
+dataio_dir 	var DIRH
+
+addr 		var OUTA
+addr_dir 	var DIRA
+
+_wr 		var OUT4
+_wr_dir		var DIR4
+_wr_pin		con 4
+
+
+' write_char function parms
+char		var byte
+digit		var nib
+blink		var bit
+
+' write_word function parms
+wordptr		var word	' pointer to 4-char text 
+
+' write_str function parms
+strptr		var word	' pointer to string
+scroll_delay	var word	' delay between scrolls in ms
+
+
+' general workspace
+i		var byte
+j		var byte
+ix		var word
+
+
+' text strings
+word1 		data "   Jerry Hogsett N6CCM San Carlos, California 415-593-6382 November 4, 1995.   ",0,0,0,0
+
+
+
+'init
+
+init:
+
+dataio = 0
+addr = 0
+_wr = 1
+dataio_dir = %11111111
+addr_dir = %0111
+_wr_dir = %1
+
+gosub disp_on
+
+'addr = %0000
+'dataio = %00010111
+'pulsout _wr_pin,1
+
+blink = 0
+
+loop:
+
+gosub disp_on
+
+strptr = Word1
+scroll_delay = 150
+gosub write_str
+goto loop
+
+
+
+
+'=============================
+' functions
+'=============================
+
+
+' scroll a string to the display
+write_str:
+
+	j = 0
+
+write_str_loop:
+
+	read strptr+j,char
+	if char = 0 then write_str_done
+
+	wordptr = strptr+j
+	gosub write_word
+	pause scroll_delay
+	j = j + 1
+	goto write_str_loop
+	
+write_str_done:
+	return
+
+
+
+' put a 4-character string to the display
+write_word:
+
+	for i = 0 to 3
+		read wordptr + i,char
+		digit = 3 - i
+		gosub write_char
+	next 
+	return
+
+
+
+' set char & digit
+write_char:
+	addr = (digit & %0011) | %0100
+	dataio = (char & %01111111) | (blink << 7)
+	gosub set_data
+	return
+
+
+' turn off the display
+disp_off:
+	addr = %0000
+	dataio = %10000000
+	gosub set_data
+	return
+
+' turn on the display (plus blink attribute & 100%)
+disp_on:
+	addr = %0000
+	dataio = %00010111
+	gosub set_data
+	return
+
+' turn on the display at 50%
+disp_50:
+	addr = %0000
+	dataio = %00010110
+	gosub set_data
+	return
+
+' turn on the display at 25%
+disp_25:
+	addr = %0000
+	dataio = %00010101
+	gosub set_data
+	return
+
+' set data by pulsing write line
+set_data:
+	pulsout _wr_pin,1
+	return
+

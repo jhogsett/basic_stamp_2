@@ -1,0 +1,33 @@
+' {$STAMP BS2}
+' {$PBASIC 2.5}
+
+DIRS = $ffff
+OUTS = $0000
+
+in VAR Nib
+ib VAR Byte
+rw VAR Word
+tb VAR Byte
+
+tb = 30
+
+flashtime CON 27
+flashcount CON 10
+
+main:
+
+FOR in = 1 TO flashcount
+  OUTL = $1f
+  PAUSE flashtime
+  OUTL = $00
+  PAUSE flashtime
+NEXT
+
+FOR in = 1 TO flashcount
+  OUTH = $1f
+  PAUSE flashtime
+  OUTH = $00
+  PAUSE flashtime
+NEXT
+
+GOTO main

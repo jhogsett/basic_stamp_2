@@ -1,0 +1,674 @@
+'{$STAMP BS2px, circleanim1.bpx, windmillanim.bpx}
+' {$PBASIC 2.5}
+
+' demonstrates correct latch and enable timing
+
+' pin mappings
+addr   VAR   OUTC
+enable  VAR  OUT12
+rdata  VAR  OUT0
+gdata  VAR  OUT1
+rgdata  VAR  OUTA
+clock  VAR  OUT4
+clockpin CON 4
+latch  VAR  OUT5
+latchpin CON 5
+red CON 0
+green CON 1
+yellow CON 2
+
+framebufferoffset CON 64
+
+' set directions
+DIRS = %0001111100110011
+OUTS = %1111111111111111
+
+w VAR Word
+ww VAR Word
+r VAR Word
+b VAR Byte
+i VAR Word
+n VAR Nib
+m VAR Nib
+nn VAR Nib
+mm VAR Nib
+x VAR Byte
+y VAR Byte
+lx VAR Byte
+ly VAR Byte
+j VAR Byte
+t VAR Nib
+c VAR Byte
+a VAR Bit
+aa VAR Bit
+
+' parameters for DoFrame subroutine
+frame VAR Byte
+times VAR Byte
+framebase VAR Byte
+scanline VAR Byte
+framecount VAR Byte
+'framecolor VAR Nib
+
+'startframe VAR Byte
+'endframe VAR Byte
+'framestep VAR Nib
+
+'frame1 VAR Byte
+'frame2 VAR Byte
+
+' scratchpad ram frame 0=red 1=green
+memframe VAR Bit
+
+redframe CON 0
+greenframe CON 1
+
+
+
+
+clock = 0
+latch = 0
+enable = 0
+rgdata = 0
+
+
+lx = 0
+ly = 0
+x = 0
+y = 0
+memframe = 0
+
+
+'PUT 15 << 1, 1
+'PUT framebufferoffset, Word 65535
+
+'frame1 = 0
+'frame2 = 0
+
+STORE 0
+times = 40
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''
+'''''''''''''''''''''''''''''''''''''''''''''''''''
+main:
+
+
+FOR i = 0 TO 15
+  RANDOM r
+  PUT r.LOWBYTE.LOWNIB << 1 + r.BIT7, r.HIGHBYTE
+NEXT
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''
+''''''''
+'''''''''''''''''''''''''''''''''''''''''''
+'FOR n = 1 TO 5
+
+'frame1 = (frame1 + 1) // 15
+'frame2 = (frame2 + 15) // 16
+
+'main1:
+'RANDOM r
+'frame = r.LOWBYTE.LOWNIB >> 1
+'frame2 = r.LOWBYTE.HIGHNIB >> 1
+'IF frame = frame2 THEN main1
+
+'STORE 2
+'frame = frame1
+'memframe = 0
+'GOSUB CopyFrameM
+
+'GOSUB DoFrameMR
+
+'STORE  2
+'GOSUB OrFrameM
+'GOSUB AndFrameM
+'GOSUB XorFrameM
+'STORE  1
+
+'GOSUB DoFrameMR
+
+'frame = frame1
+'memframe = 0
+'GOSUB OrFrameM
+
+'GOSUB DoFrameM
+
+'STORE 2
+'frame = frame2
+'memframe = 1
+'GOSUB CopyFrameM
+
+'GOSUB DoFrameMR
+
+
+'STORE  2
+'GOSUB OrFrameM
+'GOSUB AndFrameM
+'GOSUB XorFrameM
+'STORE  1
+
+'GOSUB DoFrameMR
+'GOSUB DoFrameM
+
+'NEXT
+
+main1:
+GOSUB DoFrameMR
+'GOSUB DoFrameMRedR
+GOSUB DoIt
+
+GOTO main1
+
+'GOSUB DoFrameMRed
+'GOSUB DoFrameMGreen
+
+'GOTO main
+
+i = ly << 1
+GET i, Word w
+w = w & ~(%1111111111111111 >> lx)
+PUT i, Word w
+
+i = y << 1
+GET i , Word w
+w = w | (%1111111111111111 >> x)
+PUT i, Word w
+
+'GOSUB DoFrameMGreen
+
+i = (15 - ly) << 1
+GET i+framebufferoffset, Word w
+w = w & ~(%1111111111111111 >> lx)
+PUT i+framebufferoffset, Word w
+
+i = (15 - y) << 1
+GET i+framebufferoffset , Word w
+w = w | (%1111111111111111 >> x)
+PUT i+framebufferoffset, Word w
+
+lx = x
+ly = y
+
+x = x + 1
+y = y + 1
+
+IF x = 16 THEN
+  x = 0
+ENDIF
+
+IF y = 16 THEN
+  y = 0
+ENDIF
+
+GOTO main
+
+
+
+'GET r.LOWBYTE >> 2, w
+'w = w | (1 << r.HIGHBYTE.LOWNIB)
+'PUT r.LOWBYTE >> 2, w
+
+'RANDOM r
+'GET r.LOWBYTE >> 2, w
+'w = w &  ~(1 << r.HIGHBYTE.LOWNIB)
+'PUT r.LOWBYTE >> 2, w
+
+GOTO main
+
+
+
+
+
+
+
+
+
+'DoFrame:
+'  framebase = frame << 4
+'  FOR scanline = framebase TO framebase + 15
+'    READ scanline << 1, Word w
+'
+'  latch = 0
+'  enable = 1
+'
+'    SHIFTOUT framecolor, clockpin, 1, [w \ 16]
+'
+'  latch = 1
+'  addr = scanline.LOWNIB
+'  enable = 0
+'
+'  NEXT
+'RETURN
+
+'DoFrameT:
+'  framebase = frame << 4
+'  FOR framecount = 1 TO times
+'    FOR scanline = framebase TO framebase + 15
+'      READ scanline << 1, Word w
+'      SHIFTOUT framecolor, clockpin, 1, [w \ 16]
+'      enable = 1
+'      PULSOUT latchpin, 1
+'      addr = scanline.LOWNIB
+'      enable = 0
+'    NEXT
+'  NEXT
+
+'DoFrameR:
+'  FOR framecount = 1 TO times
+'    FOR frame = startframe TO endframe STEP framestep
+'      framebase = frame << 4
+'      FOR scanline = framebase TO framebase + 15
+'        READ scanline << 1, Word w
+'        latch = 0
+'        enable = 1
+'        SHIFTOUT framecolor, clockpin, 1, [w \ 16]
+'        latch = 1
+''        addr = scanline.LOWNIB
+'        enable = 0
+'      NEXT
+'    NEXT
+'  NEXT
+'RETURN
+
+' display the the red and green scratchpad frames
+' uses:
+'   scanline, w
+DoFrameM:
+  FOR j = 0 TO 16
+    b = j << 1
+    GET b, Word w
+    SHIFTOUT red, clockpin, 1, [w \ 16]
+    enable = 1
+    PULSOUT latchpin, 1
+    addr = j
+    enable = 0
+    GET b + framebufferoffset, Word w
+    SHIFTOUT green, clockpin, 1, [w \ 16]
+    'second addressing doesn't seem to be needed
+    'enable = 1
+    PULSOUT latchpin, 1
+    'addr = j
+    'enable = 0
+  NEXT
+RETURN
+
+'''this one doesn't blend the two colors well
+' display the the red and green scratchpad frames
+' uses:
+'   scanline, w
+DoFrameM2:
+  FOR j = 0 TO 16
+    b = j << 1
+    GET b, Word w
+    SHIFTOUT red, clockpin, 1, [w \ 16]
+    enable = 1
+    PULSOUT latchpin, 1
+    addr = j
+    enable = 0
+  NEXT
+  FOR j = 0 TO 16
+    b = j << 1
+    GET b + framebufferoffset, Word w
+    SHIFTOUT green, clockpin, 1, [w \ 16]
+    enable = 1
+    PULSOUT latchpin, 1
+    addr = j
+    enable = 0
+  NEXT
+RETURN
+
+' display the the red and green scratchpad frames
+' uses:
+'   scanline, w
+DoFrameMR:
+  FOR framecount = 0 TO times
+    FOR j = 0 TO 16
+      b = j << 1
+      GET b, Word w
+      SHIFTOUT red, clockpin, 1, [w \ 16]
+      enable = 1
+      PULSOUT latchpin, 1
+      addr = j
+      enable = 0
+      GET b + framebufferoffset, Word w
+      SHIFTOUT green, clockpin, 1, [w \ 16]
+      'second addressing doesn't seem to be needed
+      'enable = 1
+      PULSOUT latchpin, 1
+      'addr = j
+      'enable = 0
+    NEXT
+  NEXT
+RETURN
+
+
+' copy a frame from memory to scratchpad ram
+' uses:
+' current STORE, w, framebase, scanline, i
+' inputs:
+'   frame 0-63, memframe 0-1
+' this doesn't work past 8 frames
+'CopyFrameMbad:
+'  framebase = frame << 5
+'  i = memframe << 6
+'  FOR scanline = framebase TO framebase + 31 STEP 2
+'    READ scanline, Word w
+'    PUT scanline - framebase + i, Word w
+'  NEXT
+'RETURN
+
+' copy a frame from memory to scratchpad ram
+' uses:
+' current STORE, w, framebase, scanline, i
+' inputs:
+'   frame 0-63, memframe 0-1
+CopyFrameM:
+  framebase = frame << 4
+  i = memframe << 6
+  FOR scanline = framebase TO framebase + 15
+    READ scanline << 1, Word w
+    PUT (scanline.LOWNIB << 1) + i, Word w
+  NEXT
+RETURN
+
+' clear the scratchpad ram
+ClearMemFrames:
+  FOR w = 0 TO 64
+    PUT w, 0
+  NEXT
+RETURN
+
+' copy a frame from memory to scratchpad ram
+' uses:
+' current STORE, w, framebase, scanline
+' inputs:
+'   frame 0-63, memframe 0-1
+OrFrameMold:
+  framebase = frame << 4
+  FOR scanline = framebase TO framebase + 15
+    READ scanline << 1, Word w
+    GET (scanline.LOWNIB << 1) + 32 + (memframe << 6), Word ww
+    w = w | ww    ' copy a frame from memory to scratchpad ram
+    PUT (scanline.LOWNIB << 1) + (memframe << 6), Word w
+  NEXT
+RETURN
+
+' uses:
+' current STORE, w, framebase, scanline, i
+' inputs:
+'   frame 0-63, memframe 0-1
+OrFrameM:
+  framebase = frame << 4
+  i = memframe << 6
+  FOR scanline = framebase TO framebase + 15
+    j = scanline.LOWNIB << 1 + i
+    GET j, Word w
+    READ scanline << 1, Word ww
+    w = ww | w
+    PUT j, Word w
+  NEXT
+RETURN
+
+' uses:
+' current STORE, w, framebase, scanline, i
+' inputs:
+'   frame 0-63, memframe 0-1
+AndFrameM:
+  framebase = frame << 4
+  i = memframe << 6
+  FOR scanline = framebase TO framebase + 15
+    j = scanline.LOWNIB << 1 + i
+    GET j, Word w
+    READ scanline << 1, Word ww
+    w = ww & w
+    PUT j, Word w
+  NEXT
+RETURN
+
+' uses:
+' current STORE, w, framebase, scanline, i
+' inputs:
+'   frame 0-63, memframe 0-1
+XorFrameM:
+  framebase = frame << 4
+  i = memframe << 6
+  FOR scanline = framebase TO framebase + 15
+    j = scanline.LOWNIB << 1 + i
+    GET j, Word w
+    READ scanline << 1, Word ww
+    w = ww ^ w
+    PUT j, Word w
+  NEXT
+RETURN
+
+
+' display the the red and green scratchpad frames
+' uses:
+'   scanline, w
+DoFrameMF:
+  FOR n = 0 TO 15
+    b = n << 1
+    GET b + (memframe << 6), Word w
+    SHIFTOUT memframe, clockpin, 1, [w \ 16]
+    enable = 1
+    PULSOUT latchpin, 1
+    addr = n
+    enable = 0
+  NEXT
+RETURN
+
+' display the the red and green scratchpad frames
+' uses:
+'   scanline, w
+DoFrameMRed:
+  FOR j = 0 TO 16
+    b = j << 1
+    GET b, Word w
+    SHIFTOUT red, clockpin, 1, [w \ 16]
+    enable = 1
+    PULSOUT latchpin, 1
+    addr = j.LOWNIB
+    enable = 0
+  NEXT
+RETURN
+
+' display the the red and green scratchpad frames
+' uses:
+'   scanline, w
+DoFrameMRedR:
+  FOR framecount = 0 TO times
+    FOR j = 0 TO 16
+      b = j << 1
+      GET b, Word w
+      SHIFTOUT red, clockpin, 1, [w \ 16]
+      enable = 1
+      PULSOUT latchpin, 1
+      addr = j.LOWNIB
+      enable = 0
+    NEXT
+  NEXT
+RETURN
+
+
+
+' display the the red and green scratchpad frames
+' uses:
+'   scanline, w
+DoFrameMGreen:
+  FOR j = 0 TO 16
+    b = (j << 1) + framebufferoffset
+    GET b, Word w
+    SHIFTOUT green, clockpin, 1, [w \ 16]
+    enable = 1
+    PULSOUT latchpin, 1
+    addr = j.LOWNIB
+    enable = 0
+  NEXT
+RETURN
+
+
+
+
+count1 DATA 0,1,1,2,1,2,2,3
+count2 DATA 0,1,0,1,1,2,1,2
+alive DATA 0,0,1,1,0,0,1,1
+
+
+' rules
+'
+' if scanline is first scanline, there's no previous row
+' if tripple is zero, there's no previous column
+' get scanline as a word then shift bits as needed
+' if tripple is 0-6, shift byte right, and with $7
+' if tripple is 7-8, shift word right, and with $7
+' if tripple is 9-15, shift byte right, and with $7
+'
+'
+'
+
+' inputs:
+'   scanline - word offset into scratchpad
+'   t - tripple to get
+' returns:
+'   n
+GetTripple:
+  j = scanline << 1
+  IF t <= 6 THEN
+    GET j, b
+    n = (b >> (6 - t)) & $7
+  ELSEIF t <= 8 THEN
+    GET j, Word w
+    n = (w >> (7 - (t - 7))) & $7
+  ELSEIF t <= 14 THEN
+    GET j + 1, b
+    n = (b << 1) & $7
+  ELSE
+    GET j + 1, b
+
+  ENDIF
+RETURN
+
+' inputs:
+'   scanline - word offset into scratchpad
+'   t - tripple to get
+'   x - live or dead
+' uses:
+'   b
+SetCell:
+  j = scanline << 1
+  IF t <= 7 THEN
+    GET j, b
+    IF x = 1 THEN
+      b = b | (1 << (7 - t))
+    ELSE
+      B = b & ~(1 << (7 - t))
+    ENDIF
+    PUT j, b
+  ELSE
+    GET j + 1, b
+    IF x = 1 THEN
+      b = b | (1 << (7 - (t - 8)))
+    ELSE
+      b = b & ~(1 << (7 - (t - 8)))
+    ENDIF
+    PUT j + 1, b
+  ENDIF
+RETURN
+
+
+
+
+' inputs:
+'   scanline - word offset into scratchpad
+'   t - tripple to get
+' returns:
+'   m
+GetTripple1:
+  GOSUB GetTripple
+  READ count1 + n, m
+RETURN
+
+' inputs:
+'   scanline - word offset into scratchpad
+'   t - tripple to get
+' returns:
+'   m
+GetTripple2:
+  GOSUB GetTripple
+  READ count2 + n, m
+RETURN
+
+' inputs:
+'   scanline - word offset into scratchpad
+'   t - tripple to get
+' returns:
+'   m
+GetTrippleA:
+  GOSUB GetTripple
+  READ alive + n, m
+RETURN
+
+'Any live cell with fewer than two live neighbours dies, as IF caused by underpopulation.
+'Any live cell with more than three live neighbours dies, as IF by overcrowding.
+'Any live cell with two OR three live neighbours lives ON TO the NEXT generation.
+'Any dead cell with exactly three live neighbours becomes a live cell.
+
+liverules DATA 0,0,1,1,0,0,0,0,0
+deadrules DATA 0,0,0,1,0,0,0,0,0
+
+doit:
+  FOR nn = 0 TO 15
+    'PUT 65, nn
+    FOR t = 0 TO 15
+      'PUT 67, t
+      IF nn = 0 THEN
+        scanline = nn
+        GOSUB GetTripple2
+        c = m
+        scanline = nn + 1
+        GOSUB GetTripple1
+        c = c + m
+        'PUT 64, c
+      ELSEIF scanline = 15 THEN
+        scanline = nn
+        GOSUB GetTripple2
+        c = m
+        scanline = nn - 1
+        GOSUB GetTripple1
+        c = c + m
+        'PUT 64, c
+      ELSE
+        Scanline = nn - 1
+        GOSUB GetTripple1
+        c = m
+        scanline = nn
+        GOSUB GetTripple2
+        c = c + m
+        scanline = nn + 1
+        GOSUB GetTripple1
+        c = c + m
+        'PUT 64, c
+      ENDIF
+
+    PUT 64, c
+
+    scanline = nn
+    GOSUB GetTrippleA
+
+    IF m = 1 THEN
+      READ liverules + c, x
+    ELSE
+      READ deadrules + c, x
+    ENDIF
+
+    GOSUB SetCell
+    'GOSUB DoFrameMR
+    NEXT
+  'GOSUB DoFrameMR
+  NEXT
+RETURN
+
+
+
+
+

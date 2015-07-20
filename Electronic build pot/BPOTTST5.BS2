@@ -1,0 +1,261 @@
+' build pot machine
+' hardware test routines
+
+' boolean constants
+IN		con	0
+OUT		con 	1
+
+' hardware definitions
+LED_ADDR	var	OUTC
+LED_DATA	var	OUT12
+LED_WRITE	con	13
+LED_DIRMASK	con	%0011111100000000
+
+LCD_BUS		var	OUTA
+LCD_RS		con	4
+LCD_E		con	5
+LCD_DIRMASK	con	%0000000000111111
+
+DBA_LATCH	var	IN6
+DBA_CLEAR	con	7
+DBA_DIRMASK	con	%0000000010000000
+
+SND_START	con	14
+SND_DIRMASK	con	%0100000000000000
+
+SPKR		con	15
+SPKR_DIRMASK	con	%1000000000000000
+
+DIRMASK		con	LED_DIRMASK | LCD_DIRMASK | DBA_DIRMASK | SND_DIRMASK | SPKR_DIRMASK
+
+
+' program constants
+to_ms		con	500		' muliply factor for pulsout
+
+' program variables
+ledaddr		var	nib		' arguments for write_led
+leddata		var	bit
+
+char		var	byte		' arguments for write_lcd
+
+r		var	word
+a		var	word
+b		var	word
+ad		var	bit
+bd		var	bit
+t		var	byte
+i		var	byte
+temp		var	byte
+
+restart:
+' hardware init
+DIRS = DIRMASK
+LOW LED_WRITE
+HIGH DBA_CLEAR
+PULSOUT DBA_CLEAR,1
+
+
+
+gosub init_lcd
+gosub clear
+
+loop0:
+
+random r
+a = r.lownib
+
+if a > 11 then loop0
+
+loop1:
+random r
+b = r.lownib
+
+if b > 11 then loop1
+
+if a = b then loop1
+if abs(a-b) = 1 then loop1
+'if (b-a) = 1 then loop1
+if abs(a-b) = 11 then loop1
+'if (b-a) = 11 then loop1
+if abs(a-b) = 2 then loop1
+'if (b-a) = 2 then loop1
+if abs(a-b) = 10 then loop1
+'if (b-a) = 10 then loop1
+
+random r
+ad = r.bit0
+random r
+bd = r.bit0
+random r
+t = r.lowbyte / 32
+t = (t + 8)  * 12
+'t = 8 * 12
+
+gosub clear
+char = (t dig 1) + 48
+gosub write_lcd
+char = (t dig 0) + 48
+gosub write_lcd
+char = ":"
+gosub write_lcd
+char = (a dig 1) + 48
+gosub write_lcd
+char = (a dig 0) + 48
+gosub write_lcd
+char = ","
+gosub write_lcd
+char = (b dig 1) + 48
+gosub write_lcd
+char = (b dig 0) + 48
+gosub write_lcd
+
+
+' debug dec a, "   ", dec b, cr
+
+for i = 1 to t
+	
+	ledaddr = a
+	leddata = 1
+	gosub write_led
+
+	ledaddr = b
+	leddata = 0
+	gosub write_led
+
+	a = (a - 1) + (2 * ad)
+	b = (b - 1) + (2 * ad)
+
+	if a = 12 then loop2
+	goto loop3
+loop2:
+	a = 0
+loop3:
+	if a = 15 then loop4
+	goto loop5
+loop4:
+	a = 11
+loop5:
+	if b = 12 then loop6
+	goto loop7
+loop6:
+	b = 0
+loop7:
+	if b = 15 then loop8
+	goto loop9
+loop8:
+	b = 11
+loop9:
+
+	pause 10
+next 
+
+if DBA_LATCH = 0 then loop0
+
+'pause 1000
+pulsout DBA_CLEAR,1
+
+goto restart
+
+
+' set ledaddr to 0-11, leddata to 0-1
+write_led:
+	LED_ADDR = ledaddr
+	LED_DATA = leddata
+	pulsout LED_WRITE, 1 ' * to_ms
+	return
+
+
+
+
+
+init_lcd:	
+	LCD_BUS = 0		'Clear the output lines
+'	DIRS = LCD_DIRMASK
+	pause 200		'Wait 200 ms for LCD to reset. 
+	LOW LCD_RS
+
+' Initialize the LCD in accordance with HitachiÕs instructions for 4-bit interface. 
+
+i_LCD:	
+	LCD_BUS = %0011		'Set to 8-bit operation. 
+	pulsout LCD_E,1		'Send data three times
+	pause 10		'to initialize LCD. 
+	pulsout LCD_E,1		
+	pause 10		
+	pulsout LCD_E,1		
+	pause 10		
+
+	LCD_BUS = %0010		'Set to 4-bit operation. 
+	pulsout LCD_E,1		'Send above data three times. 
+'	pulsout E,1
+'	pulsout E,1
+
+' send a series of initializations to the LCD display
+' display on, blinking, cursor moves right, clear
+
+'	for i = 0 to 5
+'		lookup i,[%00101000,%00001101,%00000111,%00000010,%00000001,%10010000],char
+	for i = 0 to 4
+		lookup i,[%00001101,%00000110,%00000010,%00000001,%10000000],char
+		gosub write_lcd
+	next
+	high	LCD_RS		'Prepare to send characters. 
+
+' Main program loop: receive data, check for backspace, and display data on LCD
+
+	for i = 0 to 15
+	'          0123456789abcdef
+	lookup i,["Build Pot $23.00"],char
+	gosub write_lcd
+	pause 10
+	next 
+	pause 900
+'	gosub clear
+	return	
+
+' Write the ASCII character in char to LCD. 
+
+write_lcd:	
+'	let pins = pins & %00010000
+	temp = char/16		'Put high nibble of b3 into b2. 
+'	let pins = pins | temp	'OR the contents of b2 into pins. 
+	LCD_BUS = temp
+	pulsout LCD_E,1		'Blip enable pin. 
+	temp = char & %00001111		'Put low nibble of b3 into b2. 
+'	let pins = pins & %00010000	'Clear 4-bit data bus. 
+'	let pins = pins | temp		'OR the contents of b2 into pins.
+	LCD_BUS = temp
+	pulsout LCD_E,1		'Blip enable. 
+	return
+
+
+' Backspace, rub out character by printing a blank.  
+
+'bksp:	
+'	if char > 13 then out	'Not a bksp or cr? Output character. 
+'	if char = 3 then clear	'Ctl-C clears LCD screen.  
+'	if char = 13 then cret	'Carriage return.  
+'	if char <> 8 then main	'Reject other non-printables. 
+'	gosub back
+'	let char = 32		'Send a blank to display
+'	gosub wr_LCD
+'	gosub back		'Back up to counter LCDÕs auto-increment. 
+'	goto main		'Get ready for another transmission. 
+'
+'back:	low RS			'Change to instruction register. 
+'	let char = 16		'Move cursor left. 
+'	gosub wr_LCD		'Write instruction to LCD. 
+'	high RS			'Put RS back in character mode. 
+'	return
+'
+
+clear:	
+	low LCD_RS		'Change to instruction register. 
+	char = 1		'Clear the display. 
+	gosub write_lcd		'Write instruction to LCD. 
+	char = %10000000
+	gosub write_lcd
+	high LCD_RS		'Put RS back in character mode.
+	return
+
+
